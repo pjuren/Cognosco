@@ -17,22 +17,27 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef INSTANCE_HPP_
-#define INSTANCE_HPP_
+#ifndef ATTRIBUTE_HPP_
+#define ATTRIBUTE_HPP_
 
 #include <string>
 #include <vector>
 
 #include "Attribute.hpp"
 
-class Instance {
-public:
-  Instance();
-private:
-  size_t instance_id;
-  std::vector<AttributeOccurrence> attributes;
+enum AttributeType {NUMERIC, ORDINAL, NOMINAL};
 
-  static size_t instance_counter;
+class AttributeDescription {
+public:
+  AttributeDescription();
+private:
+  std::string name;
+  AttributeType attr_type;
+};
+
+class AttributeOccurrence {
+private:
+  AttributeDescription *attr_desc;
 };
 
 #endif
