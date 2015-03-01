@@ -23,8 +23,6 @@
 #include <string>
 #include <vector>
 
-#include "Attribute.hpp"
-
 enum AttributeType {NUMERIC, ORDINAL, NOMINAL};
 
 class AttributeDescription {
