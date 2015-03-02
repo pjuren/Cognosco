@@ -1,4 +1,4 @@
-/* The following applys to this software package and all subparts therein
+/* The following applies to this software package and all subparts therein
  *
  * Cognosco Copyright (C) 2015 Philip J. Uren
  *
@@ -17,7 +17,12 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifndef CLUSTERING_HPP_
+#define CLUSTERING_HPP_
+
 #include <unordered_map>
 
 typedef std::unordered_map<std::pair<std::string, std::string>, double>
         DistanceMatrix;
+
+#endif
