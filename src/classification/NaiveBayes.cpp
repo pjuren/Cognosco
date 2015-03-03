@@ -29,40 +29,59 @@ NaiveBayes::learn(const vector<Instance> &training_instances,
   unordered_map<string, double> class_counts;
 
   // for computing mean and variance
-  typename unordered_map<std::pair<std::string, std::string>, double> ClsAtMap;
-  ClsAtMap ms, ss;
+  typedef unordered_map<pair<string, string>, RunningStat> ClsAttMap;
+  ClsAttMap running_stats;
 
   for (size_t i = 0; i < training_instances.size(); ++i) {
     const &string instance_class_label =\
       training_instances[i].get_attribute_value(class_label);
-
     class_counts[instance_class_label] += 1;
-    const size_t c_cls_cnt(class_counts[instance_class_label]);
 
     for (Instance::const_iterator it = training_instances[i].begin();
          it != training_instances[i].end(); ++it) {
       const string& attribute_name = it->get_name();
-      const double att_value = it->get_attribute_value();
+      const double att_value = it->get_attribute_value_numeric();
       std::pair<string, string> att_class_pair =\
         std::make_pair(instance_class_label, attribute_name)
-      if (m1s.find(att_class_pair) == m1s.end()) {
-        assert(ss.find(att_class_pair) == s1s.end());
-        m1s[att_class_pair] = att_val;
-        ss[att_class_pair] = 0;
-      } else {
-        assert(ss.find(att_class_pair) != s1s.end());
-        const double prev_m(ms[att_class_pair]);
-        ms[att_class_pair] = ms[att_class_pair] +\
-                             ((att_val - ms[att_class_pair]) / c_cls_cnt);
-        ss[att_class_pair] = ss[att_class_pair] +\
-                             ((att_val - prev_m) *\
-                              (att_val - ms[att_class_pair]));
-      }
+      running_stats[att_class_pair].push(att_value);
     }
   }
 
-  for (ClsAtMap::iterator it = ms.begin(); it != ms.end(); ++it) {
+  for (ClsAtMap::const_iterator it = running_stats.begin();
+       it != running_stats.end(); ++it) {
     const pair<string, string> class_attr_pair(it->first);
-    
+    this->class_means[class_attr_pair] = it->second.mean();
+    this->class_variances[class_attr_pair] = it->second.variance();
+  }
+
+  for (unordered_map<string,double>::iterator it = class_counts.begin();
+       it != class_counts.end(); ++it) {
+    this->class_priors[it->first] = it->second / training_instances.size();
+  }
+}
+
+void
+NaiveBayes::membership_probability(const Instance &test_isntance,
+                                   const std::string class_label) const {
+  double res = 1;
+  for (Instance::const_iterator it = training_instance.begin();
+       it != training_instance[i].end(); ++it) {
+    res *= this->get_conditional_prob(it->get_name(), class_label,
+                                      it->get_attribute_value_numeric());
+  }
+  return res * this->get_prior_prob(class_label);
+}
+
+void
+NaiveBayes::get_conditional_prob(const string &att_name,
+                                 const string &class_name,
+                                 const double attribute_value) const {
+  typedef unordered_map<pair<string, string>, RunningStat> ClsAttMap;
+  pair<string, string> cls_att_pair = std::make_pair(class_name, att_name);
+  ClsAttMap::const_iterator v_it = this->class_variances.find(cls_att_pair);
+  ClsAttMap::const_iterator m_it = this->class_variances.find(cls_att_pair);
+  if ((v_it == this->class_variances.end()) || (m_it == this->class_means.end())) {
+    throw NaiveBayesError("unknown class and attribute pair: " + class_name
+                          + ", " + att_name);
   }
 }
