@@ -17,6 +17,20 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <sstream>
+
 #include "Instance.hpp"
+#include "CognoscoError.hpp"
 
 size_t Instance::instance_counter = 0;
+
+const AttributeOccurrence*
+Instance::get_attribute_occurrence(const size_t i) const {
+  if (i >= this->attributes.size()) {
+    std::stringstream ss;
+    ss << "cannot get attribute number " << i << " as isntance has only "
+       << this->attributes.size() << " attributes";
+    throw CognoscoError(ss.str());
+  }
+  return this->attributes[i];
+}

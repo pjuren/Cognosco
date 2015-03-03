@@ -22,6 +22,7 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 
 #include "Attribute.hpp"
 
@@ -33,12 +34,20 @@ public:
   Instance(std::vector<AttributeOccurrence> att_occurances);
   void add_attribute_occurrance(const double value,
                                 const AttributeDescription *att_desc_ptr) {
-    this->attributes.push_back(AttributeOccurrence(value, att_desc_ptr));
+    AttributeOccurrence *x = new NumericAttributeOccurrence(value, att_desc_ptr);
+    this->attributes.push_back(x);
     this->instance_counter += 1;
   };
+  void add_attribute_occurrance(const std::string value,
+                                const AttributeDescription *att_desc_ptr) {
+    this->attributes.push_back(new NominalAttributeOccurrence(value, att_desc_ptr));
+    this->instance_counter += 1;
+  };
+
+  const AttributeOccurrence* get_attribute_occurrence(const size_t i) const;
 private:
   size_t instance_id;
-  std::vector<AttributeOccurrence> attributes;
+  std::vector<AttributeOccurrence*> attributes;
 
   static size_t instance_counter;
 };

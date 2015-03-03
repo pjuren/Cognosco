@@ -30,6 +30,9 @@ public:
   AttributeDescription() : name(""), attr_type(NULL_ATTRIBUTE_TYPE) {};
   AttributeDescription(std::string name, AttributeType type) : name(name),
     attr_type(type) {};
+  const std::string& get_name() const {return this->name;}
+  const AttributeType& get_attribute_type() const {return this->attr_type;}
+  void set_type(const AttributeType &type) {this->attr_type = type;}
 private:
   std::string name;
   AttributeType attr_type;
@@ -37,11 +40,36 @@ private:
 
 class AttributeOccurrence {
 public:
-  AttributeOccurrence(const double val, const AttributeDescription *attr_desc) :
-    value(val), attr_desc(attr_desc) {};
+  AttributeOccurrence(const AttributeDescription *attr_desc) :
+    attr_desc(attr_desc) {};
+  virtual std::string value_as_string() const = 0;
+  const std::string& get_attribute_name() const {return attr_desc->get_name();}
+private:
+  const AttributeDescription *attr_desc;
+};
+
+class NumericAttributeOccurrence : public AttributeOccurrence {
+public:
+  NumericAttributeOccurrence(const double val,
+                             const AttributeDescription *attr_desc) :
+                             AttributeOccurrence(attr_desc), value(val) {};
+  std::string value_as_string() const {
+    return std::to_string(this->value);
+  }
 private:
   double value;
-  const AttributeDescription *attr_desc;
+};
+
+class NominalAttributeOccurrence : public AttributeOccurrence {
+public:
+  NominalAttributeOccurrence(const std::string &val,
+                             const AttributeDescription *attr_desc) :
+                             AttributeOccurrence(attr_desc), value(val) {};
+  std::string value_as_string() const {
+    return this->value;
+  }
+private:
+  std::string value;
 };
 
 #endif
