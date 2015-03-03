@@ -25,12 +25,14 @@
 #include <vector>
 
 class CognoscoError: public std::exception {
+public:
   CognoscoError(std::string msg): msg(msg) {};
   CognoscoError(std::string msg, std::exception nested) : msg(msg) {
     this->nested.push_back(nested);
   };
   CognoscoError(std::string msg, std::vector<std::exception> nested) :
   msg(msg), nested(nested) {};
+  ~CognoscoError() throw() {};
 
   virtual const char* what() const throw() {
     std::string res;
