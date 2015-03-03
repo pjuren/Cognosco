@@ -1,1 +1,7 @@
+# ignore object and library files
 *.o
+*.so
+
+# ignore compiled binaries
+/bin/
+/src/progs/Classify
