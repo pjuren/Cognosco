@@ -23,19 +23,25 @@
 #include <string>
 #include <vector>
 
-enum AttributeType {NUMERIC, ORDINAL, NOMINAL};
+enum AttributeType {NUMERIC, ORDINAL, NOMINAL, NULL_ATTRIBUTE_TYPE};
 
 class AttributeDescription {
 public:
-  AttributeDescription();
+  AttributeDescription() : name(""), attr_type(NULL_ATTRIBUTE_TYPE) {};
+  AttributeDescription(std::string name, AttributeType type) : name(name),
+    attr_type(type) {};
 private:
   std::string name;
   AttributeType attr_type;
 };
 
 class AttributeOccurrence {
+public:
+  AttributeOccurrence(const double val, const AttributeDescription *attr_desc) :
+    value(val), attr_desc(attr_desc) {};
 private:
-  AttributeDescription *attr_desc;
+  double value;
+  const AttributeDescription *attr_desc;
 };
 
 #endif

@@ -1,4 +1,4 @@
-/* The following applys to this software package and all subparts therein
+/* The following applies to this software package and all subparts therein
  *
  * Cognosco Copyright (C) 2015 Philip J. Uren
  *
@@ -17,30 +17,32 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef INSTANCE_HPP_
-#define INSTANCE_HPP_
+#ifndef DATASET_HPP_
+#define DATASET_HPP_
 
 #include <string>
 #include <vector>
 
+#include "Instance.hpp"
 #include "Attribute.hpp"
 
-class Instance {
+class Dataset {
 public:
-  Instance() {
-    this->instance_counter += 1;
-  };
-  Instance(std::vector<AttributeOccurrence> att_occurances);
-  void add_attribute_occurrance(const double value,
-                                const AttributeDescription *att_desc_ptr) {
-    this->attributes.push_back(AttributeOccurrence(value, att_desc_ptr));
-    this->instance_counter += 1;
-  };
-private:
-  size_t instance_id;
-  std::vector<AttributeOccurrence> attributes;
+  // constructors and destructors
+  //Dataset();
+  //~Dataset();
 
-  static size_t instance_counter;
+  // inspectors
+  const AttributeDescription* get_attribute_description_ptr(size_t k) const;
+
+  // mutators
+  void add_attribute(const AttributeDescription &att_desc);
+  void add_instance(const Instance &instance);
+
+private:
+
+  std::vector<Instance> instances;
+  std::vector<AttributeDescription*> att_descr_ptrs;
 };
 
 #endif

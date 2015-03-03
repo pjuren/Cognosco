@@ -1,4 +1,4 @@
-/* The following applys to this software package and all subparts therein
+/* The following applies to this software package and all subparts therein
  *
  * Cognosco Copyright (C) 2015 Philip J. Uren
  *
@@ -17,30 +17,29 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef INSTANCE_HPP_
-#define INSTANCE_HPP_
+// stl includes
+#include <sstream>
 
-#include <string>
-#include <vector>
+// local Cognosco includes
+#include "Dataset.hpp"
+#include "CognoscoError.hpp"
 
-#include "Attribute.hpp"
+void
+Dataset::add_instance(const Instance &inst) {
+  this->instances.push_back(inst);
+}
 
-class Instance {
-public:
-  Instance() {
-    this->instance_counter += 1;
-  };
-  Instance(std::vector<AttributeOccurrence> att_occurances);
-  void add_attribute_occurrance(const double value,
-                                const AttributeDescription *att_desc_ptr) {
-    this->attributes.push_back(AttributeOccurrence(value, att_desc_ptr));
-    this->instance_counter += 1;
-  };
-private:
-  size_t instance_id;
-  std::vector<AttributeOccurrence> attributes;
+void
+Dataset::add_attribute(const AttributeDescription &att_desc) {
+  att_descr_ptrs.push_back(new AttributeDescription(att_desc));
+}
 
-  static size_t instance_counter;
-};
-
-#endif
+const AttributeDescription*
+Dataset::get_attribute_description_ptr(size_t k) const {
+  if (k >= this->att_descr_ptrs.size()) {
+    std::stringstream ss;
+    ss << "Cannot get attribute description " << k << "; dataset only has "
+       << this->att_descr_ptrs.size() << " attributes";
+    throw CognoscoError(ss.str());
+  }
+}
