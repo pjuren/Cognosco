@@ -28,14 +28,17 @@
 
 // bring these into the current namespace..
 using std::cerr;
+using std::cout;
 using std::endl;
 
 int
 main(int argc, const char* argv[]) {
   try {
     Dataset d;
-    CSVLoader csv_loader;
+    CSVLoader csv_loader(" ");
     csv_loader.load(argv[1], d);
+
+    cout << d.to_csv() << endl;
 
     /*NaiveBayes nb;
     nb.train(dataset)*/
