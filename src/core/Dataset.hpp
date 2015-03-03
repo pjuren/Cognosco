@@ -34,10 +34,13 @@ public:
 
   // inspectors
   const AttributeDescription* get_attribute_description_ptr(size_t k) const;
+  std::string to_csv(const std::string &sep = ",") const;
 
   // mutators
   void add_attribute(const AttributeDescription &att_desc);
   void add_instance(const Instance &instance);
+  void set_attribute_type(const size_t k, const AttributeType &type);
+  const AttributeType& get_attribute_type(const size_t k) const;
 
 private:
 
