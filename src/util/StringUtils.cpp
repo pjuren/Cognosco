@@ -21,20 +21,20 @@
 #include "StringUtils.hpp"
 
 std::string
-rstrip(std::string s) {
+rstrip(const std::string &s) {
   size_t trim = s.size();
   while(std::isspace(s[trim-1])) trim -= 1;
   return s.substr(0, trim);
 }
 
 std::string
-lstrip(std::string s) {
+lstrip(const std::string &s) {
   size_t trim = 0;
   while(std::isspace(s[trim])) trim += 1;
   return s.substr(trim, std::string::npos);
 }
 
 std::string
-strip(std::string s) {
+strip(const std::string &s) {
   return rstrip(lstrip(s));
 }

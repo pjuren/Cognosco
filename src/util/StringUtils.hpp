@@ -25,7 +25,7 @@
 template < class ContainerT >
 void
 tokenize(const std::string& str, ContainerT& tokens,
-         const std::string& delimiter = " ", bool trimEmpty = false) {
+         const std::string& delimiter = " ", bool trimEmpty = true) {
    std::string::size_type pos, lastPos = 0;
 
    using value_type = typename ContainerT::value_type;
@@ -52,8 +52,8 @@ tokenize(const std::string& str, ContainerT& tokens,
    }
 }
 
-std::string rstrip(std::string s);
-std::string lstrip(std::string s);
-std::string strip(std::string s);
+std::string rstrip(const std::string &s);
+std::string lstrip(const std::string &s);
+std::string strip(const std::string &s);
 
 #endif
