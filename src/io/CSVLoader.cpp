@@ -22,11 +22,13 @@
 #include<vector>
 #include<fstream>
 #include<iostream>
+#include<sstream>
 
 // local Cognosco includes
 #include "CSVLoader.hpp"
 #include "Dataset.hpp"
 #include "StringUtils.hpp"
+#include "CognoscoError.hpp"
 
 // bring these into local namespace
 using std::string;
@@ -37,11 +39,13 @@ void
 CSVLoader::load(const std::string &filename, Dataset &dataset) const {
   ifstream strm(filename.c_str());
   string line;
-  bool first;
+  bool first = true;
   while (strm.good()) {
     getline(strm, line);
     line = strip(line);
     if (line.empty()) continue;
+
+    std::cerr << "processing line: " << line << std::endl;
 
     vector<string> parts;
     tokenize(line, parts, seperator);
@@ -51,18 +55,46 @@ CSVLoader::load(const std::string &filename, Dataset &dataset) const {
       // create attributes
       for (size_t i = 0; i < parts.size(); ++i) {
         // TODO remove assumption that everything is numeric...
-        dataset.add_attribute(AttributeDescription(parts[i], NUMERIC));
+        dataset.add_attribute(AttributeDescription(parts[i],
+                                                   NULL_ATTRIBUTE_TYPE));
       }
+      first = false;
     } else {
       // if it's not the first line, then use it to create instances
       Instance instance;
       for (size_t i = 0; i < parts.size(); ++i) {
-        // TODO remove assumption that everything is numeric...
-        instance.add_attribute_occurrance(std::stof(parts[i]),
-                                          dataset.get_attribute_description_ptr(i));
+        const AttributeDescription* ad_ptr =\
+          dataset.get_attribute_description_ptr(i);
+        const AttributeType att_type (dataset.get_attribute_type(i));
+        if (att_type == NULL_ATTRIBUTE_TYPE) {
+          try {
+            // try to treat as a floating point number
+            double d_val (std::stof(parts[i]));
+            instance.add_attribute_occurrance(d_val, ad_ptr);
+            dataset.set_attribute_type(i, NUMERIC);
+          } catch (const std::invalid_argument &e) {
+            // if we fail to parse as a float, treat as nominal
+            instance.add_attribute_occurrance(strip(parts[i]), ad_ptr);
+            dataset.set_attribute_type(i, NOMINAL);
+          }
+        } else if (att_type == NOMINAL) {
+          instance.add_attribute_occurrance(strip(parts[i]), ad_ptr);
+        } else if (att_type == NUMERIC) {
+          try {
+            double d_val (std::stof(parts[i]));
+            instance.add_attribute_occurrance(d_val, ad_ptr);
+          } catch (const std::invalid_argument &e) {
+            std::stringstream ss;
+            ss << "failed to parse " << parts[i] << " as numeric";
+            throw CognoscoError(ss.str());
+          }
+        } else {
+          std::stringstream ss;
+          ss << "failed to parse " << parts[i] << "; unknown attribute type";
+          throw CognoscoError(ss.str());
+        }
       }
       dataset.add_instance(instance);
-
     }
   }
 }

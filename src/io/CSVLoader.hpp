@@ -29,7 +29,7 @@
 class CSVLoader {
 public:
   CSVLoader() : seperator(",") {};
-  CSVLoader(const std::string &filename);
+  CSVLoader(const std::string &sep) : seperator(sep) {};
 
   void load(const std::string &filename, Dataset &dataset) const;
 private:
