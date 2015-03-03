@@ -1,4 +1,4 @@
-/* The following applys to this software package and all subparts therein
+/* The following applies to this software package and all subparts therein
  *
  * Cognosco Copyright (C) 2015 Philip J. Uren
  *
@@ -16,3 +16,35 @@
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
+// stl includes
+#include <cstdlib>
+#include <iostream>
+
+// local Cognosco includes
+#include "Dataset.hpp"
+#include "CSVLoader.hpp"
+#include "CognoscoError.hpp"
+
+// bring these into the current namespace..
+using std::cerr;
+using std::endl;
+
+int
+main(int argc, const char* argv[]) {
+  try {
+    Dataset d;
+    CSVLoader csv_loader;
+    csv_loader.load(argv[1], d);
+
+    /*NaiveBayes nb;
+    nb.train(dataset)*/
+  } catch (const CognoscoError &e) {
+    cerr << "ERROR:\t" << e.what() << endl;
+    return EXIT_FAILURE;
+  } catch (std::bad_alloc &ba) {
+    cerr << "ERROR: could not allocate memory" << endl;
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}
