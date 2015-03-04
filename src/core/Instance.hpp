@@ -28,6 +28,7 @@
 
 class Instance {
 public:
+  // constructors
   Instance() {
     this->instance_counter += 1;
   };
@@ -38,13 +39,25 @@ public:
     this->attributes.push_back(x);
     this->instance_counter += 1;
   };
+
+  // types
+  typedef std::vector<AttributeOccurrence*>::iterator iterator;
+  typedef std::vector<AttributeOccurrence*>::const_iterator const_iterator;
+
+  // inspectors
+  const AttributeOccurrence* get_attribute_occurrence(const size_t i) const;
+  const_iterator begin() const { return this->attributes.begin(); }
+  const_iterator end() const { return this->attributes.end(); }
+
+  // mutators
   void add_attribute_occurrance(const std::string value,
                                 const AttributeDescription *att_desc_ptr) {
     this->attributes.push_back(new NominalAttributeOccurrence(value, att_desc_ptr));
     this->instance_counter += 1;
   };
+  iterator begin() { return this->attributes.begin(); }
+  iterator end() { return this->attributes.end(); }
 
-  const AttributeOccurrence* get_attribute_occurrence(const size_t i) const;
 private:
   size_t instance_id;
   std::vector<AttributeOccurrence*> attributes;

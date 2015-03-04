@@ -25,6 +25,7 @@
 #include "Dataset.hpp"
 #include "CSVLoader.hpp"
 #include "CognoscoError.hpp"
+#include "NaiveBayes.hpp"
 
 // bring these into the current namespace..
 using std::cerr;
@@ -40,8 +41,8 @@ main(int argc, const char* argv[]) {
 
     cout << d.to_csv() << endl;
 
-    /*NaiveBayes nb;
-    nb.train(dataset)*/
+    NaiveBayes nb;
+    nb.learn(d, "E");
   } catch (const CognoscoError &e) {
     cerr << "ERROR:\t" << e.what() << endl;
     return EXIT_FAILURE;
