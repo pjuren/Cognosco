@@ -34,11 +34,11 @@ Dataset::add_instance(const Instance &inst) {
 }
 
 void
-Dataset::add_attribute(const AttributeDescription &att_desc) {
-  att_descr_ptrs.push_back(new AttributeDescription(att_desc));
+Dataset::add_attribute(const Attribute &att_desc) {
+  att_descr_ptrs.push_back(new Attribute(att_desc));
 }
 
-const AttributeDescription*
+const Attribute*
 Dataset::get_attribute_description_ptr(size_t k) const {
   if (k >= this->att_descr_ptrs.size()) {
     std::stringstream ss;
@@ -61,7 +61,7 @@ Dataset::to_csv(const string &sep) const {
     for (size_t j = 0; j < this->att_descr_ptrs.size(); ++j) {
       std::cerr << "instance " << i << "; attribute " << j << std::endl;
       if (j != 0) ss << sep << " ";
-      ss << this->instances[i].get_attribute_occurrence(j)->value_as_string();
+      ss << this->instances[i].get_att_occurrence(j)->to_string();
     }
     ss << std::endl;
   }

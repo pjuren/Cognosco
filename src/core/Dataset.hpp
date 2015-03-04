@@ -37,14 +37,14 @@ public:
   typedef std::vector<Instance>::const_iterator const_iterator;
 
   // inspectors
-  const AttributeDescription* get_attribute_description_ptr(size_t k) const;
+  const Attribute* get_attribute_description_ptr(size_t k) const;
   std::string to_csv(const std::string &sep = ",") const;
   const_iterator begin() const { return this->instances.begin(); }
   const_iterator end() const { return this->instances.end(); }
   size_t size() const {return instances.size(); }
 
   // mutators
-  void add_attribute(const AttributeDescription &att_desc);
+  void add_attribute(const Attribute &att_desc);
   void add_instance(const Instance &instance);
   void set_attribute_type(const size_t k, const AttributeType &type);
   const AttributeType& get_attribute_type(const size_t k) const;
@@ -54,7 +54,7 @@ public:
 private:
 
   std::vector<Instance> instances;
-  std::vector<AttributeDescription*> att_descr_ptrs;
+  std::vector<Attribute*> att_descr_ptrs;
 };
 
 #endif
