@@ -31,18 +31,33 @@
 using std::cerr;
 using std::cout;
 using std::endl;
+using std::string;
 
 int
 main(int argc, const char* argv[]) {
   try {
-    Dataset d;
-    CSVLoader csv_loader(" ");
-    csv_loader.load(argv[1], d);
+    if (argc != 5) {
+      cout << "USAGE: ./classify training.dat testing.data class_label "
+           << "positive_class_value" << endl;
+    } else {
+      Dataset train, test;
+      CSVLoader csv_loader(" ");
+      csv_loader.load(argv[1], train);
+      csv_loader.load(argv[2], test);
+      const string class_label(argv[3]);
+      const string pos_class_val(argv[4]);
 
-    cout << d.to_csv() << endl;
+      NaiveBayes nb;
+      nb.learn(train, class_label);
 
-    NaiveBayes nb;
-    nb.learn(d, "E");
+      for (Dataset::const_iterator inst = test.begin();
+           inst != test.end(); ++inst) {
+        cerr << "prob: "
+             << nb.membership_probability(*inst, pos_class_val) << endl;
+      }
+    }
+
+
   } catch (const CognoscoError &e) {
     cerr << "ERROR:\t" << e.what() << endl;
     return EXIT_FAILURE;
