@@ -47,14 +47,6 @@ INCLUDEDIRS = $(IO_MODULE_DIR) $(CORE_MODULE_DIR) $(UI_MODULE_DIR) \
               $(UTIL_MODULE_DIR)
 INCLUDEARGS = $(addprefix -I,$(INCLUDEDIRS))
 
-#ifeq "$(shell uname)" "Darwin"
-#CFLAGS += -arch x86_64
-#ifeq "$(shell if [ `sysctl -n kern.osrelease | cut -d . -f 1` -ge 13 ];\
-#              then echo 'true'; fi)" "true"
-#CFLAGS += -stdlib=libstdc++
-#endif
-#endif
-
 ifdef DEBUG
 CFLAGS += $(DEBUGFLAGS)
 endif
@@ -83,8 +75,9 @@ endif
 ###############################################################################
 
 Classify: $(addprefix $(CORE_MODULE_DIR)/, Dataset.o Attribute.o Instance.o) \
-	        $(addprefix $(IO_MODULE_DIR)/, CSVLoader.o) \
+          $(addprefix $(IO_MODULE_DIR)/, CSVLoader.o) \
           $(addprefix $(UTIL_MODULE_DIR)/, StringUtils.o) \
+          $(addprefix $(CLASSIFICATION_MODULE_DIR)/, NaiveBayes.o)
 
 
 ###############################################################################
