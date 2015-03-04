@@ -22,6 +22,7 @@
 #include <vector>
 #include <unordered_map>
 #include <sstream>
+#include <cmath>
 
 // local Cognosco includes
 #include "NaiveBayes.hpp"
@@ -61,10 +62,22 @@ NaiveBayes::get_prior_prob(const string &class_label) const {
  *        distribution parameters have not been learned.
  */
 double
-NaiveBayes::get_conditional_prob(const string &attribute_name,
-                                 const string &class_label,
-                                 const double value) const {
-  throw NaiveBayesError("not implemented");
+NaiveBayes::get_conditional_prob(const AttributeOccurrence *value,
+                                 const string &class_name) const {
+  const string &att_name (value->get_attribute_name());
+  pair<string, string> cls_att_pair = std::make_pair(class_name, att_name);
+  AttClassMap::const_iterator v_it = this->class_variances.find(cls_att_pair);
+  AttClassMap::const_iterator m_it = this->class_means.find(cls_att_pair);
+  if ((v_it == this->class_variances.end()) ||
+      (m_it == this->class_means.end())) {
+    throw NaiveBayesError("unknown class and attribute pair: " + class_name
+                          + ", " + att_name);
+  }
+  const double mu(m_it->second);
+  const double var(v_it->second);
+  const double val((*value) * 1.0);
+  const double exponent((val-mu) * (val-mu) / (2*var));
+  return exp(-exponent) / sqrt(2 * M_PI * var);
 }
 
 
@@ -78,25 +91,12 @@ NaiveBayes::membership_probability(const Instance &test_instance,
   double res = 1;
   for (Instance::const_iterator it = test_instance.begin();
        it != test_instance.end(); ++it) {
-    res *= this->get_conditional_prob(it->get_name(), class_label,
-                                      it->get_attribute_value_numeric());
+    if ((*it)->get_attribute_name() == this->learned_class) continue;
+    res *= this->get_conditional_prob(*it, class_label);
   }
   return res * this->get_prior_prob(class_label);
 }
 
-void
-NaiveBayes::get_conditional_prob(const string &att_name,
-                                 const string &class_name,
-                                 const double attribute_value) const {
-  typedef unordered_map<pair<string, string>, RunningStat> ClsAttMap;
-  pair<string, string> cls_att_pair = std::make_pair(class_name, att_name);
-  ClsAttMap::const_iterator v_it = this->class_variances.find(cls_att_pair);
-  ClsAttMap::const_iterator m_it = this->class_variances.find(cls_att_pair);
-  if ((v_it == this->class_variances.end()) || (m_it == this->class_means.end())) {
-    throw NaiveBayesError("unknown class and attribute pair: " + class_name
-                          + ", " + att_name);
-  }
-}
 
 /*****************************************************************************
  *                                MUTATORS                                   *
@@ -109,18 +109,19 @@ NaiveBayes::learn(const Dataset &training_instances,
   unordered_map<string, double> class_counts;
 
   // for computing mean and variance
-  typedef unordered_map<pair<string, string>, RunningStat> ClsAttMap;
+  typedef unordered_map<pair<string, string>, RunningStat, name_pair_hash> ClsAttMap;
   ClsAttMap running_stats;
 
   for (Dataset::const_iterator inst = training_instances.begin();
        inst != training_instances.end(); ++inst) {
     const string &instance_class_label =\
-      inst->get_attribute_value(class_label);
+      inst->get_att_occurrence(class_label)->to_string();
     class_counts[instance_class_label] += 1;
 
     for (Instance::const_iterator it = inst->begin(); it != inst->end(); ++it) {
-      const string& attribute_name = (*it)->get_name();
-      const double att_value = it->get_attribute_value_numeric();
+      const string& attribute_name = (*it)->get_attribute_name();
+      if (attribute_name == class_label) continue;
+      const double att_value = (**it) * 1.0;
       std::pair<string, string> att_class_pair =\
         std::make_pair(instance_class_label, attribute_name);
       running_stats[att_class_pair].push(att_value);
@@ -138,4 +139,6 @@ NaiveBayes::learn(const Dataset &training_instances,
        it != class_counts.end(); ++it) {
     this->class_priors[it->first] = it->second / training_instances.size();
   }
+
+  this->learned_class = class_label;
 }

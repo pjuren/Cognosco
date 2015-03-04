@@ -33,12 +33,12 @@
  *                                   TYPES                                    *
  ******************************************************************************/
 
- struct name_pair_hash {
-   size_t operator()(const std::pair<std::string, std::string> &names) const {
-     return std::hash<std::string>()(names.first) ^ \
-            std::hash<std::string>()(names.second);
-   }
- };
+struct name_pair_hash {
+  size_t operator()(const std::pair<std::string, std::string> &names) const {
+    return std::hash<std::string>()(names.first) ^ \
+           std::hash<std::string>()(names.second);
+  }
+};
 
 typedef std::unordered_map<std::pair<std::string, std::string>,
                            double, name_pair_hash> AttClassMap;
@@ -66,14 +66,14 @@ public:
   double membership_probability(const Instance &test_instance,
                                 const std::string &class_label) const;
   double get_prior_prob(const std::string &class_label) const;
-  double get_conditional_prob(const std::string &attribute_name,
-                              const std::string &class_label,
-                              const double value) const;
+  double get_conditional_prob(const AttributeOccurrence *value,
+                              const std::string &class_label) const;
 
   // public mutators
   void learn(const Dataset &training_instances,
              const std::string &class_label);
 private:
+  std::string learned_class;
   std::unordered_map<std::string, double> class_priors;
   AttClassMap class_variances;
   AttClassMap class_means;
