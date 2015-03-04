@@ -20,19 +20,29 @@
 #ifndef ATTRIBUTE_HPP_
 #define ATTRIBUTE_HPP_
 
+// stl includes
 #include <string>
 #include <vector>
 
+// local Cognosco includes
+#include "CognoscoError.hpp"
+
+// TODO probably not required; occurrences have virtual behavior, so just
+// do what you want to do and if it isn't possible, it'll fail
 enum AttributeType {NUMERIC, ORDINAL, NOMINAL, NULL_ATTRIBUTE_TYPE};
 
-class AttributeDescription {
+class Attribute {
 public:
-  AttributeDescription() : name(""), attr_type(NULL_ATTRIBUTE_TYPE) {};
-  AttributeDescription(std::string name, AttributeType type) : name(name),
-    attr_type(type) {};
-  const std::string& get_name() const {return this->name;}
-  const AttributeType& get_attribute_type() const {return this->attr_type;}
-  void set_type(const AttributeType &type) {this->attr_type = type;}
+  // constructors
+  Attribute();
+  Attribute(std::string name, AttributeType type);
+
+  // inspectors
+  const std::string& get_name() const;
+  const AttributeType& get_attribute_type() const;
+
+  // mutators
+  void set_type(const AttributeType &type);
 private:
   std::string name;
   AttributeType attr_type;
@@ -40,33 +50,64 @@ private:
 
 class AttributeOccurrence {
 public:
-  AttributeOccurrence(const AttributeDescription *attr_desc) :
-    attr_desc(attr_desc) {};
-  virtual std::string value_as_string() const = 0;
-  const std::string& get_attribute_name() const {return attr_desc->get_name();}
+  // constructors and destructors
+  AttributeOccurrence(const Attribute *attr_desc);
+  virtual ~AttributeOccurrence() {};
+  virtual AttributeOccurrence *clone() const = 0;
+
+  // inspectors
+  virtual std::string to_string() const = 0;
+  const std::string& get_attribute_name() const;
+
+  // numeric operations
+  virtual double operator *(const double d) {
+    throw CognoscoError("multiplication by double not defined");
+  }
+  virtual double operator *(const double d) const {
+    throw CognoscoError("multiplication by double not defined");
+  }
+
+protected:
+  // constructors
+  AttributeOccurrence(const AttributeOccurrence &ac) :
+    attr_desc(new Attribute(*(ac.attr_desc))) {};
+
 private:
-  const AttributeDescription *attr_desc;
+  const Attribute *attr_desc;
 };
 
 class NumericAttributeOccurrence : public AttributeOccurrence {
 public:
+  // constructors
   NumericAttributeOccurrence(const double val,
-                             const AttributeDescription *attr_desc) :
-                             AttributeOccurrence(attr_desc), value(val) {};
-  std::string value_as_string() const {
-    return std::to_string(this->value);
+                             const Attribute *attr_desc);
+  ~NumericAttributeOccurrence() {};
+
+
+  // inspectors
+  std::string to_string() const override;
+  NumericAttributeOccurrence *clone() const {
+    return new NumericAttributeOccurrence(*this);
   }
+
+  // numeric operations
+  double operator *(const double d) { return d * this->value; }
+  double operator *(const double d) const { return d * this->value; }
 private:
   double value;
 };
 
 class NominalAttributeOccurrence : public AttributeOccurrence {
 public:
+  // constructors
   NominalAttributeOccurrence(const std::string &val,
-                             const AttributeDescription *attr_desc) :
-                             AttributeOccurrence(attr_desc), value(val) {};
-  std::string value_as_string() const {
-    return this->value;
+                             const Attribute *attr_desc);
+  ~NominalAttributeOccurrence() {};
+
+  // inspectors
+  std::string to_string() const override;
+  NominalAttributeOccurrence *clone() const {
+    return new NominalAttributeOccurrence(*this);
   }
 private:
   std::string value;
