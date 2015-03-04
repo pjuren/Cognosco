@@ -17,55 +17,67 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "NaiveBayes.hpp"
-
+// stl includes
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <sstream>
 
-NaiveBayes::learn(const vector<Instance> &training_instances,
-                  const string &class_label) {
-  // for computing class prior probabilities
-  unordered_map<string, double> class_counts;
+// local Cognosco includes
+#include "NaiveBayes.hpp"
 
-  // for computing mean and variance
-  typedef unordered_map<pair<string, string>, RunningStat> ClsAttMap;
-  ClsAttMap running_stats;
+// bring these into the local namespace
+using std::pair;
+using std::string;
+using std::unordered_map;
 
-  for (size_t i = 0; i < training_instances.size(); ++i) {
-    const &string instance_class_label =\
-      training_instances[i].get_attribute_value(class_label);
-    class_counts[instance_class_label] += 1;
+/*****************************************************************************
+ *                               INSPECTORS                                  *
+ *****************************************************************************/
 
-    for (Instance::const_iterator it = training_instances[i].begin();
-         it != training_instances[i].end(); ++it) {
-      const string& attribute_name = it->get_name();
-      const double att_value = it->get_attribute_value_numeric();
-      std::pair<string, string> att_class_pair =\
-        std::make_pair(instance_class_label, attribute_name)
-      running_stats[att_class_pair].push(att_value);
-    }
+/**
+ * \brief Get the prior probability of the given class label. Classifier must
+ *        have already been trained, otherwise these priors have not been
+ *        computed.
+ */
+double
+NaiveBayes::get_prior_prob(const string &class_label) const {
+  unordered_map<string, double>::const_iterator it =\
+    this->class_priors.find(class_label);
+  if (it == this->class_priors.end()) {
+    std::stringstream ss;
+    ss << "Failed to get prior probability for class "
+       << class_label << "; no such class";
+    throw NaiveBayesError(ss.str());
   }
-
-  for (ClsAtMap::const_iterator it = running_stats.begin();
-       it != running_stats.end(); ++it) {
-    const pair<string, string> class_attr_pair(it->first);
-    this->class_means[class_attr_pair] = it->second.mean();
-    this->class_variances[class_attr_pair] = it->second.variance();
-  }
-
-  for (unordered_map<string,double>::iterator it = class_counts.begin();
-       it != class_counts.end(); ++it) {
-    this->class_priors[it->first] = it->second / training_instances.size();
-  }
+  return it->second;
 }
 
-void
-NaiveBayes::membership_probability(const Instance &test_isntance,
-                                   const std::string class_label) const {
+/**
+ * \brief Get the conditional probability of the given attribute value given
+ *        a particular class; we assume all attribute are numeric and follow
+ *        a Gaussian distribution -- TODO remove this assumption later some
+ *        time. Classifier must have already been trained, otherwise the
+ *        distribution parameters have not been learned.
+ */
+double
+NaiveBayes::get_conditional_prob(const string &attribute_name,
+                                 const string &class_label,
+                                 const double value) const {
+  throw NaiveBayesError("not implemented");
+}
+
+
+/**
+ * \brief compute the probability that a given Instance belongs to a given
+ *        class using this classifier.
+ */
+double
+NaiveBayes::membership_probability(const Instance &test_instance,
+                                   const string &class_label) const {
   double res = 1;
-  for (Instance::const_iterator it = training_instance.begin();
-       it != training_instance[i].end(); ++it) {
+  for (Instance::const_iterator it = test_instance.begin();
+       it != test_instance.end(); ++it) {
     res *= this->get_conditional_prob(it->get_name(), class_label,
                                       it->get_attribute_value_numeric());
   }
@@ -83,5 +95,47 @@ NaiveBayes::get_conditional_prob(const string &att_name,
   if ((v_it == this->class_variances.end()) || (m_it == this->class_means.end())) {
     throw NaiveBayesError("unknown class and attribute pair: " + class_name
                           + ", " + att_name);
+  }
+}
+
+/*****************************************************************************
+ *                                MUTATORS                                   *
+ *****************************************************************************/
+
+void
+NaiveBayes::learn(const Dataset &training_instances,
+                  const string &class_label) {
+  // for computing class prior probabilities
+  unordered_map<string, double> class_counts;
+
+  // for computing mean and variance
+  typedef unordered_map<pair<string, string>, RunningStat> ClsAttMap;
+  ClsAttMap running_stats;
+
+  for (Dataset::const_iterator inst = training_instances.begin();
+       inst != training_instances.end(); ++inst) {
+    const string &instance_class_label =\
+      inst->get_attribute_value(class_label);
+    class_counts[instance_class_label] += 1;
+
+    for (Instance::const_iterator it = inst->begin(); it != inst->end(); ++it) {
+      const string& attribute_name = (*it)->get_name();
+      const double att_value = it->get_attribute_value_numeric();
+      std::pair<string, string> att_class_pair =\
+        std::make_pair(instance_class_label, attribute_name);
+      running_stats[att_class_pair].push(att_value);
+    }
+  }
+
+  for (ClsAttMap::const_iterator it = running_stats.begin();
+       it != running_stats.end(); ++it) {
+    const pair<string, string> class_attr_pair(it->first);
+    this->class_means[class_attr_pair] = it->second.mean();
+    this->class_variances[class_attr_pair] = it->second.variance();
+  }
+
+  for (unordered_map<string,double>::iterator it = class_counts.begin();
+       it != class_counts.end(); ++it) {
+    this->class_priors[it->first] = it->second / training_instances.size();
   }
 }

@@ -20,13 +20,43 @@
 #ifndef NAIVE_BAYES_HPP_
 #define NAIVE_BAYES_HPP_
 
-#include "Instance.hpp"
-
+// stl includes
 #include <string>
 #include <vector>
 #include <unordered_map>
 
-class NaiveBayesError : public ClassifierError {};
+// local Cognosco includes
+#include "Dataset.hpp"
+#include "CognoscoError.hpp"
+
+/******************************************************************************
+ *                                   TYPES                                    *
+ ******************************************************************************/
+
+ struct name_pair_hash {
+   size_t operator()(const std::pair<std::string, std::string> &names) const {
+     return std::hash<std::string>()(names.first) ^ \
+            std::hash<std::string>()(names.second);
+   }
+ };
+
+typedef std::unordered_map<std::pair<std::string, std::string>,
+                           double, name_pair_hash> AttClassMap;
+
+
+/*****************************************************************************
+ *                                ERROR-HANDLING                             *
+ *****************************************************************************/
+
+class NaiveBayesError : public CognoscoError {
+public:
+  NaiveBayesError(const std::string msg) : CognoscoError(msg) {};
+};
+
+
+/*****************************************************************************
+ *                                THE CLASSIFIER                             *
+ *****************************************************************************/
 
 class NaiveBayes {
 public:
@@ -35,13 +65,18 @@ public:
   // public inspectors
   double membership_probability(const Instance &test_instance,
                                 const std::string &class_label) const;
+  double get_prior_prob(const std::string &class_label) const;
+  double get_conditional_prob(const std::string &attribute_name,
+                              const std::string &class_label,
+                              const double value) const;
 
   // public mutators
-  void learn(vector<Instance> training_instances);
+  void learn(const Dataset &training_instances,
+             const std::string &class_label);
 private:
-  unordered_map<std::string, double> class_priors;
-  unordered_map<std::pair<std::string, std::string>, double> class_variances;
-  unordered_map<std::pair<std::string, std::string>, double> class_means;
+  std::unordered_map<std::string, double> class_priors;
+  AttClassMap class_variances;
+  AttClassMap class_means;
 };
 
 /**
@@ -78,7 +113,7 @@ public:
   int numDataValues() const { return m_n;}
   double mean() const { return (m_n > 0) ? m_newM : 0.0; }
   double variance() const { return ( (m_n > 1) ? m_newS/(m_n - 1) : 0.0 ); }
-  double standardDeviation() const { return sqrt(Variance()); }
+  double standardDeviation() const { return sqrt(variance()); }
 
 private:
   int m_n;
