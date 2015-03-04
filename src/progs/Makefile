@@ -37,7 +37,7 @@ PROGS = Classify
 #                                COMPILER FLAGS                               #
 ###############################################################################
 CXX = g++
-CFLAGS = -Wall -fPIC -fmessage-length=50
+CFLAGS = -Wall -fPIC -fmessage-length=50 -std=c++11
 OPTFLAGS = -O3
 DEBUGFLAGS = -g
 #LIBS = -lgsl -lgslcblas @bamlibdir@ @bamlib@
