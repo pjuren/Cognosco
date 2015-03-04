@@ -26,41 +26,39 @@
 
 #include "Attribute.hpp"
 
+// TODO the double de-reference required on the iterator is nasty; solution
+// is to write custom iterator -- maybe later...
+
 class Instance {
 public:
-  // constructors
-  Instance() {
-    this->instance_counter += 1;
-  };
-  Instance(std::vector<AttributeOccurrence> att_occurances);
-  void add_attribute_occurrance(const double value,
-                                const AttributeDescription *att_desc_ptr) {
-    AttributeOccurrence *x = new NumericAttributeOccurrence(value, att_desc_ptr);
-    this->attributes.push_back(x);
-    this->instance_counter += 1;
-  };
+  // constructors and destructors
+  Instance();
+  Instance(const Instance &inst);
+  ~Instance();
 
   // types
   typedef std::vector<AttributeOccurrence*>::iterator iterator;
   typedef std::vector<AttributeOccurrence*>::const_iterator const_iterator;
 
   // inspectors
-  const AttributeOccurrence* get_attribute_occurrence(const size_t i) const;
   const_iterator begin() const { return this->attributes.begin(); }
   const_iterator end() const { return this->attributes.end(); }
+  const AttributeOccurrence* get_att_occurrence(const size_t i) const;
+  const AttributeOccurrence* get_att_occurrence(const std::string &name) const;
+  size_t get_instance_id() const;
 
   // mutators
   void add_attribute_occurrance(const std::string value,
-                                const AttributeDescription *att_desc_ptr) {
-    this->attributes.push_back(new NominalAttributeOccurrence(value, att_desc_ptr));
-    this->instance_counter += 1;
-  };
+                                const Attribute *att_desc_ptr);
+  void add_attribute_occurrance(const double value,
+                                const Attribute *att_desc_ptr);
   iterator begin() { return this->attributes.begin(); }
   iterator end() { return this->attributes.end(); }
 
 private:
   size_t instance_id;
   std::vector<AttributeOccurrence*> attributes;
+
 
   static size_t instance_counter;
 };
