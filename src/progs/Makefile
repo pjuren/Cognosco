@@ -30,7 +30,7 @@ CLASSIFICATION_MODULE_DIR = ../classification
 ###############################################################################
 #          PROGRAMS LIST -- THESE ARE THE THINGS THAT WILL BE BUILT           #
 ###############################################################################
-PROGS = Classify
+PROGS = Classify Cluster
 
 
 ###############################################################################
@@ -78,6 +78,10 @@ Classify: $(addprefix $(CORE_MODULE_DIR)/, Dataset.o Attribute.o Instance.o) \
           $(addprefix $(IO_MODULE_DIR)/, CSVLoader.o) \
           $(addprefix $(UTIL_MODULE_DIR)/, StringUtils.o) \
           $(addprefix $(CLASSIFICATION_MODULE_DIR)/, NaiveBayes.o)
+
+Cluster:  $(addprefix $(IO_MODULE_DIR)/, PairwiseDistanceLoader.o) \
+          $(addprefix $(UTIL_MODULE_DIR)/, StringUtils.o) \
+          $(addprefix $(CLUSTERING_MODULE_DIR)/, KMedoids.o)
 
 
 ###############################################################################
