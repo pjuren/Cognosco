@@ -20,19 +20,24 @@
 // stl includes
 #include <cstdlib>
 #include <iostream>
+#include <vector>
+#include <string>
+#include <set>
 
 // local Cognosco includes
 #include "Dataset.hpp"
-#include "clustering.hpp"
+#include "DistanceMatrix.hpp"
 #include "PairwiseDistanceLoader.hpp"
 #include "CognoscoError.hpp"
-#include "NaiveBayes.hpp"
+#include "KMedoids.hpp"
 
 // bring these into the current namespace..
 using std::cerr;
 using std::cout;
 using std::endl;
 using std::string;
+using std::vector;
+using std::set;
 
 int
 main(int argc, const char* argv[]) {
@@ -41,17 +46,22 @@ main(int argc, const char* argv[]) {
       cout << "USAGE: ./cluster num_clusters distance_matrix.dat" << endl;
     } else {
       DistanceMatrix d;
-      PairwiseDistanceLoader loader();
+      PairwiseDistanceLoader loader;
       loader.load(argv[1], d);
-      int k(stoi(argv[2]));
-      vector<string> instance_ids(d.get_instance_ids());
+      int k = std::stoi(argv[2]);
+
+      vector<string> instance_ids;
+      instance_ids.reserve(d.size());
+      for(auto kv : d) instance_ids.push_back(kv.first.first);
+
       KMedoidsClusterer clstr(k, d, instance_ids);
 
-      set<string> medoids(clstr.get_medoid_members());
+      set<string> m(clstr.get_medoids());
+      vector<string> medoids(m.begin(), m.end());
       for (size_t i = 0; i < instance_ids.size(); ++i) {
         cout << instance_ids[i] << "\t";
         for (size_t j = 0; j < medoids.size(); ++j) {
-          double dist(clstr.get_distance(instance_ids[i], medoids[j]);
+          double dist(clstr.get_distance(instance_ids[i], medoids[j]));
           cout << dist << "\t";
         }
         cout << endl;

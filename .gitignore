@@ -5,3 +5,4 @@
 # ignore compiled binaries
 /bin/
 /src/progs/Classify
+/src/progs/Cluster
