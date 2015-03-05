@@ -54,6 +54,29 @@ NaiveBayes::get_prior_prob(const string &class_label) const {
   return it->second;
 }
 
+double
+NaiveBayes::get_mean(const string &class_name, const string &att_name) const {
+  pair<string, string> cls_att_pair = std::make_pair(class_name, att_name);
+  AttClassMap::const_iterator m_it = this->class_means.find(cls_att_pair);
+  if (m_it == this->class_means.end()) {
+    throw NaiveBayesError("unknown class and attribute pair: " + class_name
+                          + ", " + att_name);
+  }
+  return m_it->second;
+}
+
+
+double
+NaiveBayes::get_variance(const string &class_name, const string &att_name) const {
+  pair<string, string> cls_att_pair = std::make_pair(class_name, att_name);
+  AttClassMap::const_iterator v_it = this->class_variances.find(cls_att_pair);
+  if (v_it == this->class_variances.end()) {
+    throw NaiveBayesError("unknown class and attribute pair: " + class_name
+                          + ", " + att_name);
+  }
+  return v_it->second;
+}
+
 /**
  * \brief Get the conditional probability of the given attribute value given
  *        a particular class; we assume all attribute are numeric and follow
@@ -86,7 +109,7 @@ NaiveBayes::get_conditional_prob(const AttributeOccurrence *value,
  *        class using this classifier.
  */
 double
-NaiveBayes::membership_probability(const Instance &test_instance,
+NaiveBayes::posterior_probability(const Instance &test_instance,
                                    const string &class_label) const {
   double res = 1;
   for (Instance::const_iterator it = test_instance.begin();
@@ -97,6 +120,38 @@ NaiveBayes::membership_probability(const Instance &test_instance,
   return res * this->get_prior_prob(class_label);
 }
 
+double
+NaiveBayes::membership_probability(const Instance &test_instance,
+                                   const string &class_label) const {
+  double sum = 0;
+  std::vector<string> class_labels;
+  for (auto p : this->class_priors) class_labels.push_back(p.first);
+  for (size_t i = 0; i < class_labels.size(); ++i)
+    sum += this->posterior_probability(test_instance, class_labels[i]);
+  return this->posterior_probability(test_instance, class_label) / sum;
+}
+
+
+string
+NaiveBayes::to_string() const {
+  if (this->learned_class.empty()) return "[NULL NB CLASSIFIER]";
+
+  std::stringstream ss;
+
+  std::vector<string> class_labels;
+  for (auto p : this->class_priors) class_labels.push_back(p.first);
+  for (size_t i = 0; i < class_labels.size(); ++i) {
+    ss << "[" << class_labels[i] << "]" << std::endl;
+    ss << "prior: " << this->get_prior_prob(class_labels[i]) << std::endl;
+    for (auto cm : this->class_means) {
+      if (cm.first.first != class_labels[i]) continue;
+      ss << "mean " << cm.first.second << ": " << cm.second << "; ";
+      ss << "variance " << cm.first.second << ": "
+         << this->get_variance(cm.first.first, cm.first.second) << std::endl;
+    }
+  }
+  return ss.str();
+}
 
 /*****************************************************************************
  *                                MUTATORS                                   *

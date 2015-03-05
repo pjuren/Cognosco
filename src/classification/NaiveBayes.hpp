@@ -65,9 +65,16 @@ public:
   // public inspectors
   double membership_probability(const Instance &test_instance,
                                 const std::string &class_label) const;
+  double posterior_probability(const Instance &test_instance,
+                               const std::string &class_label) const;
   double get_prior_prob(const std::string &class_label) const;
   double get_conditional_prob(const AttributeOccurrence *value,
                               const std::string &class_label) const;
+  std::string to_string() const;
+  double get_variance(const std::string &class_name,
+                      const std::string &att_name) const;
+  double get_mean(const std::string &class_name,
+                  const std::string &att_name) const;
 
   // public mutators
   void learn(const Dataset &training_instances,
