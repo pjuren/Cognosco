@@ -1,4 +1,4 @@
-/* The following applys to this software package and all subparts therein
+/* The following appliess to this software package and all subparts therein
  *
  * Cognosco Copyright (C) 2015 Philip J. Uren
  *
@@ -26,7 +26,7 @@
 #include <vector>
 
 // Cognosco includes
-#include "clustering.hpp"
+#include "DistanceMatrix.hpp"
 
 class KMedoidsClusterer {
 public:
@@ -40,27 +40,27 @@ public:
   std::string get_cluster_assignment(const std::string &instance_name) const;
   double compute_membership_probability(const std::string &instance,
                                         const std::string &medoid) const;
-  std::string find_closest_medoid(const std::string &instance_name);
-  double get_distance(const std::string &s, const std::string &t);
+  std::string find_closest_medoid(const std::string &instance_name) const;
+  double get_distance(const std::string &s, const std::string &t) const;
 
   // public mutators
   void train();
 
 private:
   // private inspectors
-  double cost();
+  double cost() const;
   bool is_medoid(const std::string &id) const;
 
   // private mutators
   void swap_medoid(const std::string &non_medoid, const std::string &medoid);
   void update_cluster_assignments();
-  void assign_to_medoid(const std::string &instance, const std::string medoid);
+  void assign_to_medoid(const std::string &instance, const std::string &medoid);
 
   // private instance variables
   std::set<std::string> medoids;
   DistanceMatrix distance_matrix;
-  vector<string> instance_ids;
-  unordered_map<string, string> cluster_assignments;
+  std::vector<std::string> instance_ids;
+  std::unordered_map<std::string, std::string> cluster_assignments;
 };
 
 #endif

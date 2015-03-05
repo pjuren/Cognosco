@@ -20,13 +20,19 @@
 // stl includes
 #include <string>
 #include <vector>
+#include <set>
+#include <cstdlib>
+#include <unordered_map>
 
 // Cognosco includes
 #include "KMedoids.hpp"
+#include "CognoscoError.hpp"
 
 // bring these into the name space...
 using std::string;
 using std::vector;
+using std::set;
+using std::unordered_map;
 
 
 /*****************************************************************************
@@ -78,7 +84,7 @@ KMedoidsClusterer::get_cluster_assignment(const string &instance_name) const {
   unordered_map<string, string>::const_iterator it =\
     this->cluster_assignments.find(instance_name);
   if (it == this->cluster_assignments.end()) {
-    throw SMITHLABException("no such instance in cluster assignments: "
+    throw CognoscoError("no such instance in cluster assignments: "
                             + instance_name);
   }
   return it->second;
@@ -132,7 +138,7 @@ KMedoidsClusterer::get_distance(const string &s, const string &t) const {
   DistanceMatrix::const_iterator dist_iter =\
     this->distance_matrix.find(std::make_pair(s, t));
   if (dist_iter == this->distance_matrix.end()) {
-    throw SMITHLABException("no such distance pair: " + s + ", " + t);
+    throw CognoscoError("no such distance pair: " + s + ", " + t);
   }
   return dist_iter->second;
 }
@@ -142,7 +148,7 @@ KMedoidsClusterer::get_distance(const string &s, const string &t) const {
  * compute the cost of the current configuration
  */
 double
-KMedoidsClusterer::cost() {
+KMedoidsClusterer::cost() const {
   double res = 0;
   for (size_t i = 0; i < this->instance_ids.size(); ++i) {
     string instance_name(this->instance_ids[i]);
@@ -198,10 +204,10 @@ KMedoidsClusterer::train() {
 void
 KMedoidsClusterer::swap_medoid(const string &non_medoid, const string &medoid) {
   if (this->medoids.find(non_medoid) != this->medoids.end()) {
-    throw SMITHLABException("cannot swap, " + non_medoid + " is a medoid!");
+    throw CognoscoError("cannot swap, " + non_medoid + " is a medoid!");
   }
   if (this->medoids.find(medoid) == this->medoids.end()) {
-    throw SMITHLABException("cannot swap, " + medoid + " is not a medoid!");
+    throw CognoscoError("cannot swap, " + medoid + " is not a medoid!");
   }
 
   set<string>::iterator miter = this->medoids.find(medoid);
@@ -231,7 +237,7 @@ KMedoidsClusterer::assign_to_medoid(const string &instance,
                                     const string &medoid) {
   set<string>::const_iterator it2 = this->medoids.find(medoid);
   if (it2 == this->medoids.end()) {
-    throw SMITHLABException("no such medoid: " + medoid);
+    throw CognoscoError("no such medoid: " + medoid);
   }
   this->cluster_assignments[instance] = medoid;
 }
