@@ -84,3 +84,103 @@ const AttributeType&
 Dataset::get_attribute_type(const size_t k) const {
   return this->get_attribute_description_ptr(k)->get_attribute_type();
 }
+
+
+/*****************************************************************************
+ *                            DatasetSplit CLASS                             *
+ *****************************************************************************/
+
+const std::vector<size_t>&
+DatasetSplit::get_fold(size_t k) const {
+
+}
+
+/**
+ * for a given attribute, count the number of times each of its values appears
+ * in each fold.
+ *
+ * \return unordered_map indexed first by attribute-value, then by fold number
+ *         the value being the count of occurrences for that label in that
+ *         fold.
+ */
+DiscreteAttFoldCounts
+DatasetSplit::count_label_occurrences(const std::string att_name) const {
+  unordered_map<string, vector<size_t> > res;
+
+  for (size_t k = 0; k < instances_in_fold.size(); ++k) {
+    for (size_t j = 0; j < instances_in_fold[k].size(); ++k) {
+      const string inst_label = d[instances_in_fold[k][j]][class_label];
+      if (res.find(inst_label) == res.end())
+        res[inst_label].resize(instances_in_fold.size());
+      res[inst_label][k] += 1;
+    }
+  }
+
+  return res;
+}
+
+const double
+DatasetSplit::distance(const PartialAttFoldCounts &perfect_counts) {
+
+}
+
+
+void
+DatasetSplit::swap(const FoldInstancePair &one,
+                   const FoldInstancePair &two) {
+
+}
+
+std::pair<FoldInstancePair, FoldInstancePair>
+DatasetSplit::random_swap() {
+
+}
+
+
+/*****************************************************************************
+ *                          DatasetSplitter CLASS                            *
+ *****************************************************************************/
+
+DatasetSplit
+DatasetSplitter::get_stratified_folds(const Dataset &d,
+                                      const std::string &class_label) const {
+  PartialAttFoldCounts ideal_counts =\
+    this->compute_ideal_counts(d, class_label);
+  DiscreteAttFoldCounts curr_counts =\
+    assignments.count_label_occurrences(class_label);
+  double current_score = distance(ideal_counts, curr_counts);
+  for (size_t i = 0; i < this->MAX_NUM_SWAPS; ++i) {
+    std::pair<FoldInstancePair, FoldInstancePair> swapped =\
+      assignments.random_swap();
+    DiscreteAttFoldCounts new_counts =\
+      assignments.count_label_occurrences(class_label);
+    double new_score = distance(ideal_counts, curr_counts);
+    if (new_score < current_score) {
+      current_score = new_score
+    } else {
+      // swap back
+      assignments.swap(swapped.second, swapped.first);
+    }
+  }
+}
+
+
+/**
+ * for a given attribute name, compute the ideal number of times each of its
+ * values should appear per-fold in k folds if they are stratified by this
+ * aatribute.
+ */
+PartialAttFoldCounts
+DatasetSplitter::compute_ideal_counts(const Dataset &d,
+                                      const string &att_name) const {
+  unordered_map<string, vector<size_t> > r_count;
+  for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
+    r_count[inst[att_name].resize(k)
+    for (size_t j = 0; j < k; ++j) r_count[inst[att_name][j] += 1
+  }
+  for (unordered_map<string, double>::iterator it = res.begin();
+       it != r_count.end(); ++it) {
+    for (size_t j = 0; j < k; ++j) it->second[j] /= k;
+  }
+  return r_count;
+}
