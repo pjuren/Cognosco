@@ -24,6 +24,7 @@
 
 // local Cognosco includes
 #include "PairwiseDistanceLoader.hpp"
+#include "CognoscoError.hpp"
 
 // bring these into the local namespace
 using std::string;
@@ -31,6 +32,8 @@ using std::string;
 void
 PairwiseDistanceLoader::load(const string &fn, DistanceMatrix &d) const {
   std::ifstream strm(fn.c_str());
+  if (!strm.good()) throw CognoscoError("Failed to open " + fn);
+
   load(strm, d);
 }
 
