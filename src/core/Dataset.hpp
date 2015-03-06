@@ -35,12 +35,15 @@ public:
   // types
   typedef std::vector<Instance>::iterator iterator;
   typedef std::vector<Instance>::const_iterator const_iterator;
+  typedef std::vector<Attribute*>::const_iterator const_attribute_iterator;
 
   // inspectors
   const Attribute* get_attribute_description_ptr(size_t k) const;
   std::string to_csv(const std::string &sep = ",") const;
   const_iterator begin() const { return this->instances.begin(); }
   const_iterator end() const { return this->instances.end(); }
+  const_attribute_iterator begin_attributes() const { return this->att_descr_ptrs.begin(); }
+  const_attribute_iterator end_attributes() const { return this->att_descr_ptrs.end(); }
   size_t size() const {return instances.size(); }
 
   // mutators
