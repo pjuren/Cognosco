@@ -22,6 +22,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <set>
 
 // local Cognosco includes
@@ -42,17 +43,33 @@ using std::set;
 int
 main(int argc, const char* argv[]) {
   try {
-    if (argc != 5) {
+    if (argc != 3) {
       cout << "USAGE: ./cluster num_clusters distance_matrix.dat" << endl;
     } else {
+      // get k
+      int k;
+      try {
+        k = std::stoi(argv[1]);
+      } catch (const std::invalid_argument &e) {
+        std::stringstream ss;
+        ss << "not a valid value for number of clusters: " << argv[2] << endl;
+        throw CognoscoError(ss.str());
+      }
+
+      // load distance matrix
       DistanceMatrix d;
       PairwiseDistanceLoader loader;
-      loader.load(argv[1], d);
-      int k = std::stoi(argv[2]);
+      loader.load(argv[2], d);
 
+      set<string> instance_ids_s;
+
+      for(auto kv : d) instance_ids_s.insert(kv.first.first);
       vector<string> instance_ids;
-      instance_ids.reserve(d.size());
-      for(auto kv : d) instance_ids.push_back(kv.first.first);
+      instance_ids.reserve(instance_ids_s.size());
+      for (set<string>::iterator it = instance_ids_s.begin(); it != instance_ids_s.end(); ++it) {
+        instance_ids.push_back(*it);
+      }
+      //std::cerr << "got " << instance_ids.size() << " instance ids from distance matrix" << endl;
 
       KMedoidsClusterer clstr(k, d, instance_ids);
 

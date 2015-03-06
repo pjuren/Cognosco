@@ -32,6 +32,7 @@ using std::cerr;
 using std::cout;
 using std::endl;
 using std::string;
+using std::vector;
 
 int
 main(int argc, const char* argv[]) {
@@ -41,19 +42,38 @@ main(int argc, const char* argv[]) {
            << "positive_class_value" << endl;
     } else {
       Dataset train, test;
-      CSVLoader csv_loader(" ");
+      CSVLoader csv_loader("\t");
       csv_loader.load(argv[1], train);
       csv_loader.load(argv[2], test);
       const string class_label(argv[3]);
       const string pos_class_val(argv[4]);
 
+      /*cerr << "loaded training dataset with attributes: ";
+      for (Dataset::const_attribute_iterator it = train.begin_attributes();
+           it != train.end_attributes(); ++it) {
+        if (it != train.begin_attributes()) cerr << ", ";
+        cerr << (*it)->get_name();
+      }
+      cerr << endl;*/
+
       NaiveBayes nb;
       nb.learn(train, class_label);
+      cerr << nb.to_string() << endl;
+
+      vector<string> attribute_names;
+      for (Dataset::const_attribute_iterator it = test.begin_attributes();
+          it != test.end_attributes(); ++it) {
+        attribute_names.push_back((*it)->get_name());
+      }
 
       for (Dataset::const_iterator inst = test.begin();
            inst != test.end(); ++inst) {
-        cerr << "prob: "
-             << nb.membership_probability(*inst, pos_class_val) << endl;
+
+        for (size_t j = 0; j < attribute_names.size(); j++) {
+          if (j != 0) cout << "\t";
+          cout << inst->get_att_occurrence(attribute_names[j])->to_string();
+        }
+        cout << "\t" << nb.membership_probability(*inst, pos_class_val) << endl;
       }
     }
 
