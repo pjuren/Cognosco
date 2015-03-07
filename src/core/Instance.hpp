@@ -46,6 +46,12 @@ public:
   const AttributeOccurrence* get_att_occurrence(const size_t i) const;
   const AttributeOccurrence* get_att_occurrence(const std::string &name) const;
   size_t get_instance_id() const;
+  const AttributeOccurrence* operator[] (const int i) const {
+    return this->get_att_occurrence(i);
+  }
+  const AttributeOccurrence* operator[] (const std::string &name) const {
+    return this->get_att_occurrence(name);
+  }
 
   // mutators
   void add_attribute_occurrance(const std::string value,
