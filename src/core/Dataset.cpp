@@ -106,7 +106,13 @@ DatasetSplit::DatasetSplit(const Dataset &d, const size_t k,
     this->assignments[curr % k].push_back(inst.get_instance_id());
     curr += 1;
   }
-  // TODO --> throw exception if we saw less than k instances.
+
+  if (curr < k - 1) {
+    std::stringstream ss;
+    ss << "splitting dataset into " << k << " stratified folds failed; "
+       << "dataset has only " << curr << " instances";
+    throw CognoscoError(ss.str());
+  }
 
   this->update_label_counts(d);
 }
@@ -122,7 +128,7 @@ DatasetSplit::DatasetSplit(const Dataset &d, const size_t k,
 void
 DatasetSplit::update_label_counts(const Dataset &d) {
   for (size_t k = 0; k < this->assignments.size(); ++k) {
-    for (size_t j = 0; j < this->assignments[k].size(); ++k) {
+    for (size_t j = 0; j < this->assignments[k].size(); ++j) {
       const size_t inst_id (this->assignments[k][j]);
       const string inst_label = d[inst_id][this->label_split_upon]->to_string();
       if (this->att_counts_per_fold.find(inst_label) ==\
@@ -210,6 +216,7 @@ DatasetSplitter::split(const Dataset &d,
       assignments.swap(swapped.second, swapped.first, d);
     }
   }
+  return assignments;
 }
 
 

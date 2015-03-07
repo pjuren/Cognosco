@@ -86,6 +86,12 @@ public:
   double distance(const AttFoldCounts &counts) const;
   double distance(const DatasetSplit &split) const;
   const std::vector<size_t>& operator[] (const int nIndex) const {
+    if (nIndex >= this->assignments.size()) {
+      std::stringstream ss;
+      ss << "trying to get fold " << nIndex << " from dataset split with only "
+         << this->assignments.size() << " folds";
+      throw CognoscoError(ss.str());
+    }
     return assignments[nIndex];
   }
 
