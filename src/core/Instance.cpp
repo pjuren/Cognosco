@@ -29,11 +29,11 @@ size_t Instance::instance_counter = 0;
  *                       CONSTRUCTORS AND DESTRUCTORS                        *
  *****************************************************************************/
 
-Instance::Instance() {
+Instance::Instance() : instance_id (Instance::instance_counter) {
   this->instance_counter += 1;
 }
 
-Instance::Instance(const Instance &inst) {
+Instance::Instance(const Instance &inst) : instance_id(inst.instance_id) {
   for (size_t i = 0; i < inst.attributes.size(); ++i) {
     AttributeOccurrence *cpy = inst.attributes[i]->clone();
     this->attributes.push_back(cpy);
