@@ -56,19 +56,25 @@ void
 k_fold_cross_validation(const Dataset &d, const size_t k,
                         const string &class_label,
                         const string &pos_class_val) {
+  cerr << "creating splitter" << endl;
   DatasetSplitter x_validation_splitter(k);
+  cerr << "splitting dataset" << endl;
   DatasetSplit instances_in_fold(x_validation_splitter.split(d, class_label));
 
+  cerr << "extracting attributes" << endl;
   vector<string> att_names;
   for (Dataset::const_attribute_iterator it = d.begin_attributes(); it != d.end_attributes(); ++it) {
     Attribute* att_ptr = (*it );
     att_names.push_back(att_ptr->get_name());
   }
 
+  cerr << "processing folds" << endl;
   // for each fold, learn the classifier and output
   for (size_t fold_num = 0; fold_num < k; ++fold_num) {
     NaiveBayes nb;
-    set<size_t> exclude(instances_in_fold[k].begin(), instances_in_fold[k].end());
+    //<< "pull out instance IDs for fold " << k << " when vec has length " << instances_in_fold.size();
+    set<size_t> exclude(instances_in_fold[fold_num].begin(), instances_in_fold[fold_num].end());
+    cerr << "learning NB classifier for fold " << fold_num << endl;
     nb.learn(d, class_label, exclude);
     for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
       if (exclude.find(inst->get_instance_id()) != exclude.end()) {
@@ -84,7 +90,12 @@ main(int argc, const char* argv[]) {
     const bool VERBOSE = true;
 
     if (argc == 4) {
-
+      Dataset d;
+      CSVLoader csv_loader("\t");
+      csv_loader.load(argv[1], d);
+      const string class_label(argv[2]);
+      const string pos_class_val(argv[3]);
+      k_fold_cross_validation(d, 10, class_label, pos_class_val);
     } else if (argc == 5) {
 
       Dataset train, test;
