@@ -20,6 +20,10 @@
 // stl includes
 #include <sstream>
 #include <iostream>
+#include <cstdlib>
+#include <string>
+#include <vector>
+#include <cassert>
 
 // local Cognosco includes
 #include "Dataset.hpp"
@@ -27,6 +31,7 @@
 
 // bring these into the local namespace
 using std::string;
+using std::vector;
 
 void
 Dataset::add_instance(const Instance &inst) {
@@ -90,9 +95,20 @@ Dataset::get_attribute_type(const size_t k) const {
  *                            DatasetSplit CLASS                             *
  *****************************************************************************/
 
-const std::vector<size_t>&
-DatasetSplit::get_fold(size_t k) const {
+ /**
+  * ..
+  */
+DatasetSplit::DatasetSplit(const Dataset &d, const size_t k,
+                           const std::string &labl) : label_split_upon(labl) {
+  this->assignments.resize(k);
+  size_t curr = 0;
+  for (auto inst : d) {
+    this->assignments[curr % k].push_back(inst.get_instance_id());
+    curr += 1;
+  }
+  // TODO --> throw exception if we saw less than k instances.
 
+  this->update_label_counts(d);
 }
 
 /**
@@ -103,37 +119,72 @@ DatasetSplit::get_fold(size_t k) const {
  *         the value being the count of occurrences for that label in that
  *         fold.
  */
-DiscreteAttFoldCounts
-DatasetSplit::count_label_occurrences(const std::string att_name) const {
-  unordered_map<string, vector<size_t> > res;
-
-  for (size_t k = 0; k < instances_in_fold.size(); ++k) {
-    for (size_t j = 0; j < instances_in_fold[k].size(); ++k) {
-      const string inst_label = d[instances_in_fold[k][j]][class_label];
-      if (res.find(inst_label) == res.end())
-        res[inst_label].resize(instances_in_fold.size());
-      res[inst_label][k] += 1;
+void
+DatasetSplit::update_label_counts(const Dataset &d) {
+  for (size_t k = 0; k < this->assignments.size(); ++k) {
+    for (size_t j = 0; j < this->assignments[k].size(); ++k) {
+      const size_t inst_id (this->assignments[k][j]);
+      const string inst_label = d[inst_id][this->label_split_upon]->to_string();
+      if (this->att_counts_per_fold.find(inst_label) ==\
+          this->att_counts_per_fold.end()) {
+        this->att_counts_per_fold[inst_label].resize(this->assignments.size());
+      }
+      this->att_counts_per_fold[inst_label][k] += 1;
     }
   }
-
-  return res;
 }
 
-const double
-DatasetSplit::distance(const PartialAttFoldCounts &perfect_counts) {
+double
+DatasetSplit::distance(const AttFoldCounts &fcs) const {
+  double dist = 0;
+  for (auto att_counts : fcs) {
+    const string attribute_name (att_counts.first);
+    const vector<double> fold_counts_other (att_counts.second);
+    const vector<double> &fold_counts_this =\
+      this->get_fold_counts(attribute_name);
+    this->att_counts_per_fold.find(attribute_name);
+    assert(fold_counts_other.size() == fold_counts_this.size());
+    for (size_t i = 0; i < fold_counts_other.size(); ++i) {
+      dist += fabs(fold_counts_other[i] - fold_counts_this[i]);
+    }
+  }
+  return dist;
+}
 
+
+const vector<double>&
+DatasetSplit::get_fold_counts(const string &att_label) const {
+  auto it = this->att_counts_per_fold.find(att_label);
+  if (it == this->att_counts_per_fold.end())
+    throw CognoscoError("no such label " + att_label);
+  return it->second;
 }
 
 
 void
 DatasetSplit::swap(const FoldInstancePair &one,
-                   const FoldInstancePair &two) {
+                   const FoldInstancePair &two,
+                   const Dataset &d) {
+  size_t tmp_instance_id = this->assignments[one.first][one.second];
+  this->assignments[one.first][one.second] =\
+    this->assignments[two.first][two.second];
+  this->assignments[two.first][two.second] = tmp_instance_id;
 
+  // lazy .. could just update the ones we changed -- TODO
+  this->update_label_counts(d);
 }
 
 std::pair<FoldInstancePair, FoldInstancePair>
-DatasetSplit::random_swap() {
+DatasetSplit::random_swap(const Dataset &d) {
+  size_t f_rand_fold = rand() % this->assignments.size();
+  size_t s_rand_fold = rand() % this->assignments.size();
+  size_t f_rand_instance = rand() % this->assignments[f_rand_fold].size();
+  size_t s_rand_instance = rand() % this->assignments[s_rand_fold].size();
 
+  FoldInstancePair p1 = std::make_pair(f_rand_fold, f_rand_instance);
+  FoldInstancePair p2 = std::make_pair(s_rand_fold, s_rand_instance);
+  swap(p1, p2, d);
+  return std::make_pair(p1, p2);
 }
 
 
@@ -142,24 +193,21 @@ DatasetSplit::random_swap() {
  *****************************************************************************/
 
 DatasetSplit
-DatasetSplitter::get_stratified_folds(const Dataset &d,
-                                      const std::string &class_label) const {
-  PartialAttFoldCounts ideal_counts =\
+DatasetSplitter::split(const Dataset &d,
+                       const std::string &class_label) const {
+  DatasetSplit assignments(d, this->num_folds, class_label);
+  AttFoldCounts ideal_counts =\
     this->compute_ideal_counts(d, class_label);
-  DiscreteAttFoldCounts curr_counts =\
-    assignments.count_label_occurrences(class_label);
-  double current_score = distance(ideal_counts, curr_counts);
+  double current_score = assignments.distance(ideal_counts);
   for (size_t i = 0; i < this->MAX_NUM_SWAPS; ++i) {
     std::pair<FoldInstancePair, FoldInstancePair> swapped =\
-      assignments.random_swap();
-    DiscreteAttFoldCounts new_counts =\
-      assignments.count_label_occurrences(class_label);
-    double new_score = distance(ideal_counts, curr_counts);
+      assignments.random_swap(d);
+    double new_score = assignments.distance(ideal_counts);
     if (new_score < current_score) {
-      current_score = new_score
+      current_score = new_score;
     } else {
       // swap back
-      assignments.swap(swapped.second, swapped.first);
+      assignments.swap(swapped.second, swapped.first, d);
     }
   }
 }
@@ -170,17 +218,19 @@ DatasetSplitter::get_stratified_folds(const Dataset &d,
  * values should appear per-fold in k folds if they are stratified by this
  * aatribute.
  */
-PartialAttFoldCounts
+AttFoldCounts
 DatasetSplitter::compute_ideal_counts(const Dataset &d,
                                       const string &att_name) const {
-  unordered_map<string, vector<size_t> > r_count;
+  AttFoldCounts r_count;
   for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
-    r_count[inst[att_name].resize(k)
-    for (size_t j = 0; j < k; ++j) r_count[inst[att_name][j] += 1
+    const string att_value = (*inst)[att_name]->to_string();
+    r_count[att_value].resize(this->num_folds);
+    for (size_t j = 0; j < this->num_folds; ++j)
+      r_count[att_value][j] += 1;
   }
-  for (unordered_map<string, double>::iterator it = res.begin();
-       it != r_count.end(); ++it) {
-    for (size_t j = 0; j < k; ++j) it->second[j] /= k;
+  for (auto it = r_count.begin(); it != r_count.end(); ++it) {
+    for (size_t j = 0; j < this->num_folds; ++j)
+      it->second[j] /= this->num_folds;
   }
   return r_count;
 }

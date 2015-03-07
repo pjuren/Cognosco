@@ -22,10 +22,12 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
 #include <unordered_map>
 
 #include "Instance.hpp"
 #include "Attribute.hpp"
+#include "CognoscoError.hpp"
 
 class Dataset {
 public:
@@ -46,12 +48,22 @@ public:
   const_attribute_iterator begin_attributes() const { return this->att_descr_ptrs.begin(); }
   const_attribute_iterator end_attributes() const { return this->att_descr_ptrs.end(); }
   size_t size() const {return instances.size(); }
+  const AttributeType& get_attribute_type(const size_t k) const;
+  const Instance& operator[] (const int instance_id) const {
+    // TODO fix nasty O(n)
+    for (size_t i = 0; i < this->instances.size(); ++i) {
+      if (this->instances[i].get_instance_id() == instance_id)
+        return this->instances[i];
+    }
+    std::stringstream ss;
+    ss << "No instance with id " << instance_id;
+    throw CognoscoError(ss.str());
+  }
 
   // mutators
   void add_attribute(const Attribute &att_desc);
   void add_instance(const Instance &instance);
   void set_attribute_type(const size_t k, const AttributeType &type);
-  const AttributeType& get_attribute_type(const size_t k) const;
   iterator begin() { return this->instances.begin(); }
   iterator end() { return this->instances.end(); }
 
@@ -59,52 +71,58 @@ private:
   // private instance variables
   std::vector<Instance> instances;
   std::vector<Attribute*> att_descr_ptrs;
-
-  // private types
-  typedef std::unordered_map<std::string, std::vector<size_t> >
-          AttributeFoldCounts;
-
-  // private helper functions for stratified dataset splitting
-
 };
 
-typedef std::unordered_map<std::string, std::vector<size_t> >
-        DiscreteAttFoldCounts;
-typedef std::unordered_map<std::string, std::vector<size_t> >
-        PartialAttFoldCounts;
+typedef std::unordered_map<std::string, std::vector<double> > AttFoldCounts;
 typedef std::pair<size_t, size_t> FoldInstancePair;
 
 class DatasetSplit {
 public:
+  // constructors
+  DatasetSplit(const Dataset &d, const size_t k, const std::string &label);
+
   // inspectors
   const std::vector<size_t>& get_fold(size_t k) const;
-  DiscreteAttFoldCounts
-  count_label_occurrences(const std::string att_name) const;
-  const double distance(const PartialAttFoldCounts &perfect_counts);
+  double distance(const AttFoldCounts &counts) const;
+  double distance(const DatasetSplit &split) const;
+  const std::vector<size_t>& operator[] (const int nIndex) const {
+    return assignments[nIndex];
+  }
 
   // mutators
-  void swap(const size_t inst_1, const size_t fold_1,
-            const size_t inst_2, const size_t fold_2);
-  void random_swap();
+  void swap(const FoldInstancePair &one, const FoldInstancePair &two,
+            const Dataset &d);
+  std::pair<FoldInstancePair, FoldInstancePair> random_swap(const Dataset &d);
 
 private:
+  // private instance variables
+  std::string label_split_upon;
   std::vector<std::vector<size_t> > assignments;
+  AttFoldCounts att_counts_per_fold;
+
+  // private inspectors
+  const std::vector<double>& get_fold_counts(const std::string &att_label) const;
+
+  // private mutators
+  void update_label_counts(const Dataset &d);
 };
 
 class DatasetSplitter {
 public:
+  // constructors
   DatasetSplitter(size_t k) : num_folds(k) {};
-  DatasetSplit get_stratified_folds(const Dataset &d,
-                                    const std::string &class_label) const;
+
+  // inspectors
+  DatasetSplit split(const Dataset &d, const std::string &class_label) const;
+
 private:
   // private instance variables
   size_t num_folds;
-  DatasetSplit assignments;
   const size_t MAX_NUM_SWAPS=1000;
 
   // private inspectors
-  PartialAttFoldCounts compute_ideal_counts(const std::string &cls_labl) const;
-  double distance(PartialAttFoldCounts &p, DiscreteAttFoldCounts &q) const;
+  AttFoldCounts compute_ideal_counts(const Dataset &d,
+                                     const std::string &cls_labl) const;
 };
 
 #endif
