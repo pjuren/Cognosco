@@ -84,6 +84,26 @@ k_fold_cross_validation(const Dataset &d, const size_t k,
   }
 }
 
+void
+leave_one_out_cross_validation(const Dataset &d, const size_t k,
+                        const string &class_label,
+                        const string &pos_class_val) {
+  cerr << "extracting attributes" << endl;
+  vector<string> att_names;
+  for (Dataset::const_attribute_iterator it = d.begin_attributes(); it != d.end_attributes(); ++it) {
+    Attribute* att_ptr = (*it );
+    att_names.push_back(att_ptr->get_name());
+  }
+
+  for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
+    set<size_t> exclude;
+    exclude.insert(inst->get_instance_id());
+    NaiveBayes nb;
+    nb.learn(d, class_label, exclude);
+    output_classification(*inst, nb, att_names, pos_class_val);
+  }
+}
+
 int
 main(int argc, const char* argv[]) {
   try {
@@ -96,6 +116,7 @@ main(int argc, const char* argv[]) {
       const string class_label(argv[2]);
       const string pos_class_val(argv[3]);
       k_fold_cross_validation(d, 10, class_label, pos_class_val);
+      //leave_one_out_cross_validation(d, 10, class_label, pos_class_val);
     } else if (argc == 5) {
 
       Dataset train, test;
