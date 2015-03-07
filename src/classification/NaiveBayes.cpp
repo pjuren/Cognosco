@@ -159,7 +159,8 @@ NaiveBayes::to_string() const {
 
 void
 NaiveBayes::learn(const Dataset &training_instances,
-                  const string &class_label) {
+                  const string &class_label,
+                  const std::set<size_t> &ignore_inst_ids) {
   // for computing class prior probabilities
   unordered_map<string, double> class_counts;
 
@@ -167,8 +168,13 @@ NaiveBayes::learn(const Dataset &training_instances,
   typedef unordered_map<pair<string, string>, RunningStat, name_pair_hash> ClsAttMap;
   ClsAttMap running_stats;
 
+  size_t skipped = 0;
   for (Dataset::const_iterator inst = training_instances.begin();
        inst != training_instances.end(); ++inst) {
+    if (ignore_inst_ids.find(inst->get_instance_id()) != ignore_inst_ids.end()) {
+      skipped += 1;
+      continue;
+    }
     const string &instance_class_label =\
       inst->get_att_occurrence(class_label)->to_string();
     class_counts[instance_class_label] += 1;
@@ -190,9 +196,10 @@ NaiveBayes::learn(const Dataset &training_instances,
     this->class_variances[class_attr_pair] = it->second.variance();
   }
 
+  const size_t effective_size = training_instances.size() - skipped;
   for (unordered_map<string,double>::iterator it = class_counts.begin();
        it != class_counts.end(); ++it) {
-    this->class_priors[it->first] = it->second / training_instances.size();
+    this->class_priors[it->first] = it->second / effective_size;
   }
 
   this->learned_class = class_label;

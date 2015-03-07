@@ -21,6 +21,7 @@
 #define NAIVE_BAYES_HPP_
 
 // stl includes
+#include <set>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -78,7 +79,8 @@ public:
 
   // public mutators
   void learn(const Dataset &training_instances,
-             const std::string &class_label);
+             const std::string &class_label,
+             const std::set<size_t> &ignore_instance_ids = std::set<size_t>());
 private:
   std::string learned_class;
   std::unordered_map<std::string, double> class_priors;
