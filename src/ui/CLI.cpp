@@ -1,4 +1,4 @@
-/* The following applys to this software package and all subparts therein
+/* The following applies to this software package and all subparts therein
  *
  * Cognosco Copyright (C) 2015 Philip J. Uren
  *
@@ -16,3 +16,6 @@
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
+
+#include "CLI.hpp"
