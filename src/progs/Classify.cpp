@@ -24,6 +24,7 @@
 
 // local Cognosco includes
 #include "Dataset.hpp"
+#include "CLI.hpp"
 #include "CSVLoader.hpp"
 #include "CognoscoError.hpp"
 #include "NaiveBayes.hpp"
@@ -104,10 +105,44 @@ leave_one_out_cross_validation(const Dataset &d, const size_t k,
   }
 }
 
+/*****************************************************************************
+ *                         UI AND MAIN ENTRY POINT                           *
+ *****************************************************************************/
+
+static CommandlineInterface
+get_cli(const string &prog_name) {
+  const size_t MIN_ARGS = 1;
+  const size_t MAX_ARGS = 2;
+  const vector<bool> reqd_args_bit_mask{true};
+  CommandlineInterface cli (prog_name, "for classifying stuff...",
+                            vector<bool>{true}, MIN_ARGS, MAX_ARGS);
+  cli.add_boolean_option("verbose", 'v', "output additional status messages "
+                         "during run to stderr", false);
+  cli.add_string_option("classifier", 'c', "classifier to learn",
+                        set<string>{"NaiveBayes"});
+  cli.add_string_option("cross-validation", 'r', "type of cross-validation "
+                        "to use", set<string>{"stratified_ten_fold",
+                        "hold-one-out"}, "stratified_ten_fold");
+  return cli;
+}
+
 int
 main(int argc, const char* argv[]) {
   try {
-    const bool VERBOSE = true;
+    bool VERBOSE = true;
+    string classifier;
+    string cross_validation_method;
+
+    // process general options/arguments from command line.
+    CommandlineInterface cli (get_cli(argv[0]));
+    Commandline cmdline (argc, argv);
+    cli.consume('v', cmdline, VERBOSE);
+    cli.consume('c', cmdline, classifier);
+    cli.consume('r', cmdline, cross_validation_method);
+    vector<string> args;
+    cli.consume(cmdline, args, set<int>{0,1});
+
+
 
     if (argc == 4) {
       Dataset d;
