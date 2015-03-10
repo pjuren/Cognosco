@@ -54,13 +54,20 @@ typedef CognoscoError OptionError;
 
 class Option {
 public:
-  // constructors
+  // constructors and destructors
   Option(const char short_name, const std::string &long_name,
          const std::string &descr, const bool required) :
             short_name(short_name),
             long_name(long_name),
             description(descr),
             required(required) {}
+  Option(const char short_name, const std::string &long_name,
+         const std::string &descr) :
+            short_name(short_name),
+            long_name(long_name),
+            description(descr) {}
+  virtual ~Option() {};
+
 
   // inspectors
   const char &get_short_name() const {return this->short_name;}
@@ -97,9 +104,38 @@ public:
                const std::set<std::string> &acceptable) :
                     Option(short_name, long_name, descr, required),
                     accpt_vals(acceptable) {};
+  StringOption(const std::string &long_name,
+               const char short_name,
+               const std::string &descr,
+               const std::set<std::string> &acceptable) :
+                    Option(short_name, long_name, descr),
+                    accpt_vals(acceptable) {};
+  ~StringOption() {}
+
   void parse(const OptionInstance& inst, std::string &dest) const;
 private:
   std::set<std::string> accpt_vals; // if empty, anything acceptable
+};
+
+class BooleanOption : public Option {
+public:
+  BooleanOption(const std::string &long_name,
+                const char short_name,
+                const std::string &descr) :
+                    Option(short_name, long_name, descr, true),
+                    has_default(false), default_val(false) {};
+  BooleanOption(const std::string &long_name,
+               const char short_name,
+               const std::string &descr,
+               const bool default_val) :
+                    Option(short_name, long_name, descr),
+                    has_default(true), default_val(default_val) {};
+  ~BooleanOption() {}
+
+  void parse(const OptionInstance& inst, bool &dest) const;
+private:
+  bool has_default;
+  bool default_val;
 };
 
 class IntegerOption : public Option {
@@ -175,6 +211,17 @@ public:
   Commandline() {};
   Commandline(int argc, const char* argv[]);
   OptionInstance consume_option(const Option &option);
+
+  const std::string &get_argument(const size_t i) {
+    if (i >= this->arguments.size()) {
+      std::stringstream ss;
+      ss << "trying to get argument number " << i
+         << " but cmd line only had " << this->arguments.size() << " args";
+      // TODO shouldn't be option error.. not an option...
+      throw OptionError(ss.str());
+    }
+    return arguments[i];
+  }
 private:
   std::vector<std::string> arguments;
   std::vector<OptionInstance> op_insts;
@@ -193,15 +240,10 @@ public:
                        const std::string &description);
   CommandlineInterface(const std::string &program_name,
                        const std::string &description,
-                       const std::vector<bool> reqd);
-  CommandlineInterface(const std::string &program_name,
-                       const std::string &description,
                        const size_t min_args, const size_t max_args);
-  CommandlineInterface(const std::string &program_name,
-                       const std::string &description,
-                       const std::vector<bool> reqd,
-                       const size_t min_args, const size_t max_args);
-  ~CommandlineInterface();
+  ~CommandlineInterface() {
+    for (size_t i = 0; i < this->options.size(); ++i) delete options[i];
+  }
 
   // inspectors
   std::string usage() const;
@@ -225,7 +267,7 @@ public:
   void add_boolean_option(const std::string &long_name,
                           const char &short_name,
                           const std::string &desc,
-                          const int default_value);
+                          const bool default_value);
 
   // consuming options from a command line
   template<class T>
@@ -251,7 +293,7 @@ public:
 
   // consuming arguments from a command line
   void consume(Commandline &cmdline, std::vector<std::string> &args,
-               std::set<int> indexes);
+               std::vector<int> indexes);
 
 
 private:
@@ -259,7 +301,6 @@ private:
   std::string program_description;
   size_t min_args;
   size_t max_args;
-  std::vector<bool> requried_options;
   std::vector<Option*> options;
 };
 

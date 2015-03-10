@@ -115,7 +115,7 @@ get_cli(const string &prog_name) {
   const size_t MAX_ARGS = 2;
   const vector<bool> reqd_args_bit_mask{true};
   CommandlineInterface cli (prog_name, "for classifying stuff...",
-                            vector<bool>{true}, MIN_ARGS, MAX_ARGS);
+                            MIN_ARGS, MAX_ARGS);
   cli.add_boolean_option("verbose", 'v', "output additional status messages "
                          "during run to stderr", false);
   cli.add_string_option("classifier", 'c', "classifier to learn",
@@ -140,7 +140,9 @@ main(int argc, const char* argv[]) {
     cli.consume('c', cmdline, classifier);
     cli.consume('r', cmdline, cross_validation_method);
     vector<string> args;
-    cli.consume(cmdline, args, set<int>{0,1});
+    cli.consume(cmdline, args, vector<int>{0,1});
+
+    
 
 
 

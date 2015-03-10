@@ -82,11 +82,78 @@ IntegerOption::parse(const OptionInstance& inst, std::string &dest) const {
   dest = res;
 }
 
+void
+BooleanOption::parse(const OptionInstance& inst, bool &dest) const {
+  string str_val = strip(inst.get_value());
+  if ((str_val == "TRUE") || (str_val == "True") || (str_val == "true"))
+    dest = true;
+  else if ((str_val == "FALSE") || (str_val == "False") || (str_val == "false"))
+    dest = false;
+  else {
+    std::stringstream ss;
+    ss << "Value for option " << this->get_long_name() << "is not valid";
+    throw OptionError(ss.str());
+  }
+}
+
 
 /*****************************************************************************
  *                        CommandLineInterface CLASS                         *
  *****************************************************************************/
 
+CommandlineInterface::CommandlineInterface(const string &program_name,
+                                           const string &description) :
+  program_name(program_name), program_description (description), min_args(0),
+  max_args (std::numeric_limits<size_t>::max()), options (vector<Option*>()) {}
+
+CommandlineInterface::CommandlineInterface(const string &program_name,
+                                           const string &description,
+                                           const size_t min_args,
+                                           const size_t max_args) :
+  program_name(program_name), program_description (description), min_args(0),
+  max_args (max_args), options (vector<Option*>()) {}
+
+
+
+void
+CommandlineInterface::add_string_option(const std::string &long_name,
+                                        const char &short_name,
+                                        const std::string &desc,
+                                        const std::set<std::string> &accpt_vals,
+                                        const std::string default_value) {
+  options.push_back(new StringOption(long_name, short_name, desc,
+                                     false, accpt_vals));
+}
+
+void
+CommandlineInterface::add_string_option(const std::string &long_name,
+                                        const char &short_name,
+                                        const std::string &desc,
+                                        const std::set<std::string> &accpt_vals) {
+  options.push_back(new StringOption(long_name, short_name, desc, accpt_vals));
+}
+
+void
+CommandlineInterface::add_boolean_option(const std::string &long_name,
+                                         const char &short_name,
+                                         const std::string &desc,
+                                         const bool default_value) {
+  options.push_back(new BooleanOption(long_name, short_name, desc,
+                                      default_value));
+}
+
+/**
+ * consume one or more arguments from the command line given. The results are
+ * placed, in the order specified, into the back of the vector args. They
+ * are not actually removed from the command line (TODO: maybe they should be?)
+ */
+void
+CommandlineInterface::consume(Commandline &cmdline, vector<string> &args,
+                              vector<int> indexes) {
+  for (size_t i = 0; i < indexes.size(); ++i) {
+    args.push_back(cmdline.get_argument(indexes[i]));
+  }
+}
 
 
 /*****************************************************************************
