@@ -17,8 +17,15 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+// stl includes
 #include <string>
+#include <sstream>
+
+// local incudes
 #include "StringUtils.hpp"
+
+// bring these into the local namespace
+using std::string;
 
 std::string
 rstrip(const std::string &s) {
@@ -37,4 +44,39 @@ lstrip(const std::string &s) {
 std::string
 strip(const std::string &s) {
   return rstrip(lstrip(s));
+}
+
+string
+join(const std::vector<std::string> &parts, const std::string &sep) {
+  // TODO -- nasty doing all these string concats... better way later..
+  string res = "";
+  for (size_t i = 0; i < parts.size(); ++i) {
+    if (i != 0) res += sep;
+    res += parts[i];
+  }
+  return res;
+}
+
+string
+join(const std::set<std::string> &parts, const std::string &sep) {
+  // TODO -- nasty doing all these string concats... better way later..
+  // TODO -- repats above -- make into template.
+  string res = "";
+  for (auto it = parts.begin(); it != parts.end(); ++it) {
+    if (it != parts.begin()) res += sep;
+    res += (*it);
+  }
+  return res;
+}
+
+string
+join(const std::set<int> &parts, const std::string &sep) {
+  // TODO -- nasty doing all these string concats... better way later..
+  // TODO -- repats above -- make into template.
+  std::stringstream res;
+  for (auto it = parts.begin(); it != parts.end(); ++it) {
+    if (it != parts.begin()) res << sep;
+    res << (*it);
+  }
+  return res.str();
 }

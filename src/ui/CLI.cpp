@@ -25,6 +25,7 @@
 
 // local includes
 #include "CLI.hpp"
+#include "StringUtils.hpp"
 
 // bring these names into the local namespace
 using std::vector;
@@ -36,12 +37,12 @@ using std::string;
  *****************************************************************************/
 
 void
-StringOption::parse(OptionInstance &inst, std::string &dest) const {
+StringOption::parse(const OptionInstance &inst, std::string &dest) const {
   if (!this->accpt_vals.empty() && this->accpt_vals.find(inst.get_value()) ==\
       this->accpt_vals.end()) {
-    stringstream ss;
+    std::stringstream ss;
     ss << "Value for option " << this->get_long_name()
-       << "is not valid; accepted values are " << join(this->acceptable_vals);
+       << "is not valid; accepted values are " << join(this->accpt_vals, ", ");
   }
   dest = inst.get_value();
 }
@@ -59,23 +60,23 @@ IntegerOption::parse(const OptionInstance& inst, std::string &dest) const {
   try {
     res = std::stoi(inst.get_value());
   } catch (const std::invalid_argument &e) {
-    stringstream ss;
+    std::stringstream ss;
     ss << "failed to parse " << inst.get_value() << " as integer; "
        << "invalid format";
     throw OptionError(ss.str());
   }
   if ((res > this->max_val) || (res < this->min_val)) {
-    stringstream ss;
+    std::stringstream ss;
     ss << "failed to parse " << inst.get_value() << " as integer; "
        << "value outside of range (" << this->min_val << " - "
        << this->max_val << " )";
     throw OptionError(ss.str());
   }
-  if (!this->accpt_vals.empty() && this->accpt_vals.find(inst.get_value()) ==\
+  if (!this->accpt_vals.empty() && this->accpt_vals.find(res) ==\
       this->accpt_vals.end()) {
-    stringstream ss;
+    std::stringstream ss;
     ss << "Value for option " << this->get_long_name()
-       << "is not valid; accepted values are " << join(this->acceptable_vals);
+       << "is not valid; accepted values are " << join(this->accpt_vals, ", ");
     throw OptionError(ss.str());
   }
   dest = res;
@@ -125,7 +126,7 @@ Commandline::consume_option(const Option &option) {
   bool found = false;
   vector<OptionInstance>::const_iterator it;
   for (it = this->op_insts.begin(); it != this->op_insts.end(); ++it) {
-    if (it->get_name() == option.get_short_name() ||
+    if (it->get_name() == string(1, option.get_short_name()) ||
         it->get_name() == option.get_long_name()) {
       res = (*it);
       found = true;

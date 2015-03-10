@@ -21,6 +21,8 @@
 #define STRING_UTILS_HPP_
 
 #include <string>
+#include <vector>
+#include <set>
 
 template < class ContainerT >
 void
@@ -55,5 +57,9 @@ tokenize(const std::string& str, ContainerT& tokens,
 std::string rstrip(const std::string &s);
 std::string lstrip(const std::string &s);
 std::string strip(const std::string &s);
+
+std::string join(const std::vector<std::string> &parts, const std::string &sep);
+std::string join(const std::set<std::string> &parts, const std::string &sep);
+std::string join(const std::set<int> &parts, const std::string &sep);
 
 #endif
