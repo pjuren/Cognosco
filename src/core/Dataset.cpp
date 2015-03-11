@@ -161,8 +161,11 @@ DatasetSplit::distance(const AttFoldCounts &fcs) const {
 const vector<double>&
 DatasetSplit::get_fold_counts(const string &att_label) const {
   auto it = this->att_counts_per_fold.find(att_label);
-  if (it == this->att_counts_per_fold.end())
-    throw CognoscoError("no such label " + att_label);
+  if (it == this->att_counts_per_fold.end()) {
+    std::stringstream ss;
+    ss << "no such label " << att_label;
+    throw CognoscoError(ss.str());
+  }
   return it->second;
 }
 
