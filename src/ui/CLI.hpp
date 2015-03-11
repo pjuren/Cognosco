@@ -21,6 +21,7 @@
 #define CLI_HPP_
 
 // stl includes
+#include <iostream>
 #include <limits>
 #include <string>
 #include <vector>
@@ -28,6 +29,7 @@
 
 // local inludes
 #include "CognoscoError.hpp"
+#include "StringUtils.hpp"
 
 /**
  * This file defines the command line parsing machinery. There are a number of
@@ -65,9 +67,11 @@ public:
          const std::string &descr) :
             short_name(short_name),
             long_name(long_name),
-            description(descr) {}
+            description(descr),
+            required(false) {}
+  Option(const Option &o) : short_name(o.short_name), long_name(o.long_name),
+                            description(o.description), required(o.required) {};
   virtual ~Option() {};
-
 
   // inspectors
   const char &get_short_name() const {return this->short_name;}
@@ -88,6 +92,33 @@ public:
   virtual void parse(const OptionInstance& inst, double &dest) const {
     throw OptionError("Not implemented");
   };
+
+  // for setting default values
+  // -- derived class override to provide functionality
+  virtual void parse_default(bool &dst) const {
+    std::stringstream ss;
+    ss << "conversion to bool for default value of option -" << short_name
+       << " not possible";
+    throw OptionError(ss.str());
+  }
+  virtual void parse_default(std::string &dest) const {
+    std::stringstream ss;
+    ss << "conversion to string for default value of option -" << short_name
+       << " not possible";
+    throw OptionError(ss.str());
+  };
+  virtual void parse_default(int &dest) const {
+    std::stringstream ss;
+    ss << "conversion to integer for default value of option -" << short_name
+       << " not possible";
+    throw OptionError(ss.str());
+  };
+  virtual void parse_default(double &dest) const {
+    std::stringstream ss;
+    ss << "conversion to double for default value of option -" << short_name
+       << " not possible";
+    throw OptionError(ss.str());
+  };
 private:
   char short_name;
   std::string long_name;
@@ -100,21 +131,35 @@ public:
   StringOption(const std::string &long_name,
                const char short_name,
                const std::string &descr,
-               const bool required,
+               const std::string &default_val,
                const std::set<std::string> &acceptable) :
-                    Option(short_name, long_name, descr, required),
-                    accpt_vals(acceptable) {};
+                    Option(short_name, long_name, descr),
+                    accpt_vals(acceptable),
+                    has_default(true),
+                    default_val(default_val) {};
   StringOption(const std::string &long_name,
                const char short_name,
                const std::string &descr,
                const std::set<std::string> &acceptable) :
-                    Option(short_name, long_name, descr),
-                    accpt_vals(acceptable) {};
+                    Option(short_name, long_name, descr, true),
+                    accpt_vals(acceptable),
+                    has_default(false),
+                    default_val("") {};
+  StringOption(const std::string &long_name,
+               const char short_name,
+               const std::string &descr) :
+                    Option(short_name, long_name, descr, true),
+                    accpt_vals(std::set<std::string>()),
+                    has_default(false),
+                    default_val("") {};
   ~StringOption() {}
 
   void parse(const OptionInstance& inst, std::string &dest) const;
+  void parse_default(std::string &dest) const;
 private:
   std::set<std::string> accpt_vals; // if empty, anything acceptable
+  bool has_default;
+  std::string default_val;
 };
 
 class BooleanOption : public Option {
@@ -133,6 +178,7 @@ public:
   ~BooleanOption() {}
 
   void parse(const OptionInstance& inst, bool &dest) const;
+  void parse_default(bool &dest) const;
 private:
   bool has_default;
   bool default_val;
@@ -211,12 +257,15 @@ public:
   Commandline() {};
   Commandline(int argc, const char* argv[]);
   OptionInstance consume_option(const Option &option);
+  bool has_option(const Option &option) const;
+  size_t num_arguments() const {return this->arguments.size();}
 
   const std::string &get_argument(const size_t i) {
     if (i >= this->arguments.size()) {
       std::stringstream ss;
       ss << "trying to get argument number " << i
-         << " but cmd line only had " << this->arguments.size() << " args";
+         << " but cmd line only had " << this->arguments.size() << " args: "
+         << join(this->arguments, ", ");
       // TODO shouldn't be option error.. not an option...
       throw OptionError(ss.str());
     }
@@ -244,6 +293,13 @@ public:
   ~CommandlineInterface() {
     for (size_t i = 0; i < this->options.size(); ++i) delete options[i];
   }
+  CommandlineInterface(const CommandlineInterface &cli) :
+    program_name(cli.program_name), program_description(cli.program_description),
+    min_args(cli.min_args), max_args(cli.max_args) {
+    for (size_t i = 0; i < cli.options.size(); ++i) {
+      this->options.push_back(new Option(*cli.options[i]));
+    }
+  }
 
   // inspectors
   std::string usage() const;
@@ -264,6 +320,9 @@ public:
                          const char &short_name,
                          const std::string &desc,
                          const std::set<std::string> &acceptable_vals);
+  void add_string_option(const std::string &long_name,
+                         const char &short_name,
+                         const std::string &desc);
   void add_boolean_option(const std::string &long_name,
                           const char &short_name,
                           const std::string &desc,
@@ -286,14 +345,25 @@ public:
       ss << "No such option in command line interface: " << short_name;
       throw OptionError(ss.str());
     } else {
-      OptionInstance inst = cmdline.consume_option(*ptr_to_cli_option);
-      ptr_to_cli_option->parse(inst, destination);
+      if (cmdline.has_option(*ptr_to_cli_option)) {
+        OptionInstance inst = cmdline.consume_option(*ptr_to_cli_option);
+        ptr_to_cli_option->parse(inst, destination);
+      } else {
+        if (ptr_to_cli_option->is_required()) {
+          std::stringstream ss;
+          ss << "Missing required option -" << short_name;
+          throw OptionError(ss.str());
+        } else {
+          ptr_to_cli_option->parse_default(destination);
+        }
+      }
     }
   }
 
   // consuming arguments from a command line
-  void consume(Commandline &cmdline, std::vector<std::string> &args,
-               std::vector<int> indexes);
+  void consume(Commandline &cmdline, const std::vector<int> &indexes,
+               std::vector<std::string> &args);
+  void consume(Commandline &cmdline, const int idx, std::string &dest);
 
 
 private:

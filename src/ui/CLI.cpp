@@ -83,6 +83,16 @@ IntegerOption::parse(const OptionInstance& inst, std::string &dest) const {
 }
 
 void
+StringOption::parse_default(string &dest) const {
+  if (!has_default) {
+    std::stringstream ss;
+    ss << "No default value for option " << this->get_long_name();
+    throw OptionError(ss.str());
+  }
+  dest = this->default_val;
+}
+
+void
 BooleanOption::parse(const OptionInstance& inst, bool &dest) const {
   string str_val = strip(inst.get_value());
   if ((str_val == "TRUE") || (str_val == "True") || (str_val == "true"))
@@ -94,6 +104,16 @@ BooleanOption::parse(const OptionInstance& inst, bool &dest) const {
     ss << "Value for option " << this->get_long_name() << "is not valid";
     throw OptionError(ss.str());
   }
+}
+
+void
+BooleanOption::parse_default(bool &dest) const {
+  if (!has_default) {
+    std::stringstream ss;
+    ss << "No default value for option " << this->get_long_name();
+    throw OptionError(ss.str());
+  }
+  dest = this->default_val;
 }
 
 
@@ -110,8 +130,8 @@ CommandlineInterface::CommandlineInterface(const string &program_name,
                                            const string &description,
                                            const size_t min_args,
                                            const size_t max_args) :
-  program_name(program_name), program_description (description), min_args(0),
-  max_args (max_args), options (vector<Option*>()) {}
+  program_name(program_name), program_description (description),
+  min_args(min_args), max_args (max_args), options (vector<Option*>()) {}
 
 
 
@@ -122,7 +142,7 @@ CommandlineInterface::add_string_option(const std::string &long_name,
                                         const std::set<std::string> &accpt_vals,
                                         const std::string default_value) {
   options.push_back(new StringOption(long_name, short_name, desc,
-                                     false, accpt_vals));
+                                     default_value, accpt_vals));
 }
 
 void
@@ -131,6 +151,18 @@ CommandlineInterface::add_string_option(const std::string &long_name,
                                         const std::string &desc,
                                         const std::set<std::string> &accpt_vals) {
   options.push_back(new StringOption(long_name, short_name, desc, accpt_vals));
+}
+
+/**
+ * Add a string option with just names and description. Any string will be a
+ * a valid value for this option. Since no default is provided, this is
+ * assumed to be a required option.
+ */
+void
+CommandlineInterface::add_string_option(const std::string &long_name,
+                                        const char &short_name,
+                                        const std::string &desc) {
+  options.push_back(new StringOption(long_name, short_name, desc));
 }
 
 void
@@ -148,13 +180,40 @@ CommandlineInterface::add_boolean_option(const std::string &long_name,
  * are not actually removed from the command line (TODO: maybe they should be?)
  */
 void
-CommandlineInterface::consume(Commandline &cmdline, vector<string> &args,
-                              vector<int> indexes) {
+CommandlineInterface::consume(Commandline &cmdline, const vector<int> &indexes,
+                              vector<string> &args) {
+  if ((cmdline.num_arguments() > this->max_args) ||
+      (cmdline.num_arguments() < this->min_args)) {
+    std::stringstream ss;
+    ss << "command line contained " << cmdline.num_arguments() << " arguments; "
+       << "expected between " << this->min_args << " and " << this->max_args;
+    throw OptionError(ss.str());
+  }
   for (size_t i = 0; i < indexes.size(); ++i) {
     args.push_back(cmdline.get_argument(indexes[i]));
   }
 }
 
+void
+CommandlineInterface::consume(Commandline &cmdline, const int idx,
+                              string &dest) {
+  if ((cmdline.num_arguments() > this->max_args) ||
+      (cmdline.num_arguments() < this->min_args)) {
+    std::stringstream ss;
+    ss << "command line contained " << cmdline.num_arguments() << " arguments; "
+       << "expected between " << this->min_args << " and " << this->max_args;
+    throw OptionError(ss.str());
+  }
+  dest = cmdline.get_argument(idx);
+}
+
+string
+CommandlineInterface::usage() const {
+  std::stringstream ss;
+  ss << this->program_name << std::endl;
+  ss << this->program_description << std::endl;
+  return ss.str();
+}
 
 /*****************************************************************************
  *                             Commandline CLASS                             *
@@ -162,7 +221,7 @@ CommandlineInterface::consume(Commandline &cmdline, vector<string> &args,
 
 Commandline::Commandline(int argc, const char* argv[]) {
   string option_name;
-  for (size_t i = 0; i < argc; ++i) {
+  for (size_t i = 1; i < argc; ++i) {
     string token(argv[i]);
     assert(token.size() >= 1);
 
@@ -176,9 +235,25 @@ Commandline::Commandline(int argc, const char* argv[]) {
         this->arguments.push_back(token);
       else {
         op_insts.push_back(OptionInstance(option_name, token));
+        option_name = "";
       }
     }
   }
+}
+
+
+/**
+ * TODO: fix nasty O(n) complexity; instances can be in set, no need for vector.
+ */
+bool
+Commandline::has_option(const Option &option) const {
+  for (auto it = this->op_insts.begin(); it != this->op_insts.end(); ++it) {
+    if (it->get_name() == string(1, option.get_short_name()) ||
+        it->get_name() == option.get_long_name()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -197,6 +272,7 @@ Commandline::consume_option(const Option &option) {
         it->get_name() == option.get_long_name()) {
       res = (*it);
       found = true;
+      break;
     }
   }
 
