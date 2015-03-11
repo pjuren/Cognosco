@@ -31,7 +31,8 @@ public:
   CSVLoader() : seperator(",") {};
   CSVLoader(const std::string &sep) : seperator(sep) {};
 
-  void load(const std::string &filename, Dataset &dataset) const;
+  void load(const std::string &filename, Dataset &dataset,
+            const bool VERBOSE=false) const;
 private:
   bool expect_header;
   std::string seperator;

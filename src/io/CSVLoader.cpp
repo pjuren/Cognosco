@@ -18,11 +18,11 @@
  */
 
 // stl includes
-#include<string>
-#include<vector>
-#include<fstream>
-#include<iostream>
-#include<sstream>
+#include <string>
+#include <vector>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
 // local Cognosco includes
 #include "CSVLoader.hpp"
@@ -31,13 +31,23 @@
 #include "CognoscoError.hpp"
 
 // bring these into local namespace
+using std::cerr;
+using std::endl;
 using std::string;
 using std::vector;
 using std::ifstream;
 
 void
-CSVLoader::load(const std::string &filename, Dataset &dataset) const {
+CSVLoader::load(const std::string &filename, Dataset &dataset,
+                const bool VERBOSE) const {
   ifstream strm(filename.c_str());
+
+  if (!strm.good()) {
+    std::stringstream ss;
+    ss << "failed to open file: " << filename;
+    throw CognoscoError(ss.str());
+  }
+
   string line;
   bool first = true;
   while (strm.good()) {
@@ -93,5 +103,15 @@ CSVLoader::load(const std::string &filename, Dataset &dataset) const {
       }
       dataset.add_instance(instance);
     }
+  }
+
+  if (VERBOSE) {
+    cerr << "loaded dataset from " << filename << " with attributes: ";
+    for (Dataset::const_attribute_iterator it = dataset.begin_attributes();
+         it != dataset.end_attributes(); ++it) {
+      if (it != dataset.begin_attributes()) cerr << ", ";
+      cerr << (*it)->get_name();
+    }
+    cerr << endl;
   }
 }
