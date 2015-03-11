@@ -21,6 +21,7 @@
 #include <set>
 #include <cstdlib>
 #include <iostream>
+#include <cassert>
 
 // local Cognosco includes
 #include "Dataset.hpp"
@@ -50,6 +51,19 @@ output_classification(const Instance &inst, const NaiveBayes &nb,
     cout << inst.get_att_occurrence(att_names[j])->to_string();
   }
   cout << "\t" << nb.membership_probability(inst, pos_class_val) << endl;
+}
+
+void
+output_classification(const Dataset &d, const NaiveBayes &nb,
+                      const string &pos_class_val) {
+  vector<string> attribute_names;
+  for (Dataset::const_attribute_iterator it = d.begin_attributes();
+       it != d.end_attributes(); ++it) {
+    attribute_names.push_back((*it)->get_name());
+  }
+  for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
+    output_classification(*inst, nb, attribute_names, pos_class_val);
+  }
 }
 
 
@@ -123,6 +137,10 @@ get_cli(const string &prog_name) {
   cli.add_string_option("cross-validation", 'r', "type of cross-validation "
                         "to use", set<string>{"stratified_ten_fold",
                         "hold-one-out"}, "stratified_ten_fold");
+  cli.add_string_option("class-attribute", 'a', "name of the attribute to use "
+                        "as class");
+  cli.add_string_option("positive-value", 'p', "value for the class attribute "
+                        "that should be considered the positive class");
   return cli;
 }
 
@@ -132,76 +150,65 @@ main(int argc, const char* argv[]) {
     bool VERBOSE = true;
     string classifier;
     string cross_validation_method;
+    string class_attribute_name;
+    string positive_class_value;
+    string training_dataset_fn;
+    string testing_dataset_fn = "";
 
     // process general options/arguments from command line.
     CommandlineInterface cli (get_cli(argv[0]));
-    Commandline cmdline (argc, argv);
-    cli.consume('v', cmdline, VERBOSE);
-    cli.consume('c', cmdline, classifier);
-    cli.consume('r', cmdline, cross_validation_method);
-    vector<string> args;
-    cli.consume(cmdline, args, vector<int>{0,1});
-
-    
-
-
-
-    if (argc == 4) {
-      Dataset d;
-      CSVLoader csv_loader("\t");
-      csv_loader.load(argv[1], d);
-      const string class_label(argv[2]);
-      const string pos_class_val(argv[3]);
-      k_fold_cross_validation(d, 10, class_label, pos_class_val);
-      //leave_one_out_cross_validation(d, 10, class_label, pos_class_val);
-    } else if (argc == 5) {
-
-      Dataset train, test;
-      CSVLoader csv_loader("\t");
-      csv_loader.load(argv[1], train);
-      csv_loader.load(argv[2], test);
-      const string class_label(argv[3]);
-      const string pos_class_val(argv[4]);
+    try {
+      Commandline cmdline (argc, argv);
+      cli.consume('v', cmdline, VERBOSE);
+      cli.consume('c', cmdline, classifier);
+      cli.consume('r', cmdline, cross_validation_method);
+      cli.consume('a', cmdline, class_attribute_name);
+      cli.consume('p', cmdline, positive_class_value);
+      cli.consume(cmdline, 0, training_dataset_fn);
+      if (cmdline.num_arguments() > 1) {
+        cli.consume(cmdline, 1, testing_dataset_fn);
+      }
 
       if (VERBOSE) {
-        cerr << "loaded training dataset with attributes: ";
-        for (Dataset::const_attribute_iterator it = train.begin_attributes();
-             it != train.end_attributes(); ++it) {
-          if (it != train.begin_attributes()) cerr << ", ";
-          cerr << (*it)->get_name();
-        }
-        cerr << endl;
+        cerr << "running with options: " << endl;
+        cerr << "Verbose: " << VERBOSE << endl;
+        cerr << "cross-val method: " << cross_validation_method << endl;
+        cerr << "clasifier: " << classifier << endl;
+        cerr << "class_att_name: " << class_attribute_name << endl;
+        cerr << "pos val: " << positive_class_value << endl;
+        cerr << "train fn: " << training_dataset_fn << endl;
+        cerr << "test fn: " << testing_dataset_fn << endl;
       }
-
-      NaiveBayes nb;
-      nb.learn(train, class_label);
-      cerr << nb.to_string() << endl;
-
-      vector<string> attribute_names;
-      for (Dataset::const_attribute_iterator it = test.begin_attributes();
-          it != test.end_attributes(); ++it) {
-        attribute_names.push_back((*it)->get_name());
-      }
-
-      for (Dataset::const_iterator inst = test.begin();
-           inst != test.end(); ++inst) {
-
-        for (size_t j = 0; j < attribute_names.size(); j++) {
-          if (j != 0) cout << "\t";
-          cout << inst->get_att_occurrence(attribute_names[j])->to_string();
-        }
-        cout << "\t" << nb.membership_probability(*inst, pos_class_val) << endl;
-      }
-    } else {
-      cerr << "USAGE: ./classify training.dat testing.data class_label "
-           << "positive_class_value" << endl;
-      cerr << "USAGE: ./classify dataset.dat class_label "
-           << "positive_class_value" << endl;
-      cerr << "first version runs with test and training set, second "
-              "perfroms ten-fold cross-validation" << endl;
+    } catch (const OptionError &e) {
+      cerr << e.what() << endl << endl;
+      cerr << cli.usage() << endl;
+      return EXIT_FAILURE;
     }
 
 
+    CSVLoader csv_loader("\t");
+    if (testing_dataset_fn.empty()) {
+      cerr << "got here" << endl;
+      Dataset d;
+      csv_loader.load(training_dataset_fn, d);
+
+      assert(cross_validation_method == "stratified_ten_fold" ||
+             cross_validation_method == "hold-one-out");
+      if (cross_validation_method == "stratified_ten_fold")
+        k_fold_cross_validation(d, 10, class_attribute_name,
+                                positive_class_value);
+      else
+        leave_one_out_cross_validation(d, 10, class_attribute_name,
+                                       positive_class_value);
+    } else {
+      Dataset train, test;
+      csv_loader.load(training_dataset_fn, train, VERBOSE);
+      csv_loader.load(testing_dataset_fn, test, VERBOSE);
+      NaiveBayes nb;
+      nb.learn(train, class_attribute_name);
+      cerr << nb.to_string() << endl;
+      output_classification(test, nb, positive_class_value);
+    }
   } catch (const CognoscoError &e) {
     cerr << "ERROR:\t" << e.what() << endl;
     return EXIT_FAILURE;
