@@ -23,11 +23,18 @@
 
 // local includes
 #include "Dataset.hpp"
-#include "KMedoids.hpp" // this is going to be a problem...???
+#include "KMedoids.hpp"
+#include "KMedoidsClassifier.hpp"
+#include "DistanceMatrix.hpp"
 
 // bring these names into the local namespace
 using std::string;
 using std::vector;
+using std::set;
+
+/*****************************************************************************
+ *                         STATIC HELPER FUNCTIONS                           *
+ *****************************************************************************/
 
 /**
  * convert a dataset that gives the distance
@@ -39,54 +46,78 @@ using std::vector;
  */
 static void
 build_new_dataset(const Dataset &exist_ds, Dataset &new_ds,
-                  const vector<string> &medoids,
-                  const std::set<size_t> &ignore_inst_ids,
+                  const set<string> &medoids,
+                  const set<size_t> &ignore_inst_ids,
                   const string &inst_name_att_name) {
   new_ds = Dataset(exist_ds, ignore_inst_ids);
 
   vector<string> att_names;
-  for (auto it = new_ds.attribute_begin(); it != new_ds.attribute_end(); ++it) {
-    att_names.push_back(it->get_name());
+  for (auto it = new_ds.begin_attributes(); it != new_ds.end_attributes(); ++it) {
+    Attribute* att_ptr = (*it);
+    att_names.push_back(att_ptr->get_name());
   }
 
   for (auto name : att_names) {
-    if (medoids.find(name) == medoids.end()) new_ds.delete_attribute(name);
+    if (std::find(medoids.begin(), medoids.end(), name) == medoids.end())
+      new_ds.delete_attribute(name);
   }
+}
+
+
+/*****************************************************************************
+ *                       Classifiers::KMedoids CLASS                         *
+ *****************************************************************************/
+
+string
+Classifiers::KMedoids::to_string() const {
+  std::stringstream ss;
+  ss << "KMedoids classifier constructed using " << this->name_att
+     << " as names; learned medoids as " << join(this->medoid_names, ", ")
+     << "and nb classifier as " << this->nb_classifier.to_string();
+  return ss.str();
 }
 
 void
 Classifiers::KMedoids::learn(const Dataset &train_instances,
                              const string &class_label,
-                             const std::set<size_t> &ignore_inst_ids,
-                             const string &inst_name_att_name) {
+                             const std::set<size_t> &ignore_inst_ids) {
   // convert the dataset into a distance matrix
+  std::cerr << "building distance matrix " << std::endl;
   DistanceMatrix m;
   size_t skipped = 0;
+  std::set<string> inst_ids_set;
   for (auto it = train_instances.begin(); it != train_instances.end(); ++it) {
     if (ignore_inst_ids.find(it->get_instance_id()) != ignore_inst_ids.end()) {
       skipped += 1;
       continue;
     }
-    name_att_val = it->get_attribute(this->name_att);
-    for (auto ait = it->attribtue_begin(); ait != it->attribtue_end(); ++ait) {
-      m[std::make_pair(ait->get_attribute_name(), name_att_val] =\
-        ait->get_attribute_value();
+    string name_att_val = it->get_att_occurrence(this->name_att)->get_attribute_name();
+    for (auto ait = it->begin(); ait != it->end(); ++ait) {
+      AttributeOccurrence* aoc_ptr = (*ait);
+      m[std::make_pair(aoc_ptr->get_attribute_name(), name_att_val)] =\
+        ((*aoc_ptr) * 1.0);
+      inst_ids_set.insert(aoc_ptr->get_attribute_name());
     }
   }
 
   // perform k-medoids clustering on the distance matrix
-  KMedoidsClusterer clstr(m, inst_ids);
+  std::cerr << "perform clustering " << std::endl;
+  vector<string> inst_ids;
+  std::copy(inst_ids_set.begin(), inst_ids_set.end(), std::back_inserter(inst_ids));
+  KMedoidsClusterer clstr(2, m, inst_ids);
   clstr.train();
   this->medoid_names = clstr.get_medoids();
 
   // build new dataset characterized by distance to the medoids from
   // the clustering
+  std::cerr << "transofrm dataset " << std::endl;
   Dataset nds;
-  build_new_dataset(m, nds, train_instances, this->medoid_names,
-                    ignore_inst_ids, inst_name_att_name);
+  build_new_dataset(train_instances, nds, this->medoid_names,
+                    ignore_inst_ids, this->name_att);
 
   // build a NB classifier from the new instances
-  this->nb_classifier.train(nds);
+  std::cerr << "build nb classifier " << std::endl;
+  this->nb_classifier.learn(nds, class_label);
 }
 
 
@@ -95,16 +126,18 @@ Classifiers::KMedoids::learn(const Dataset &train_instances,
  *        class using this classifier.
  */
 double
-Classifiers::KMedoids::posterior_probability(const Instance &test_instance,
-                                             const string &class_label) const {
-  Instance t_cp(test_instance) // !!!!!!!!!! make sure copy constructor is set up for instance!!!
+Classifiers::KMedoids::class_probability(const Instance &test_instance,
+                                         const string &class_label) const {
+  Instance t_cp(test_instance); // !!!!!!!!!! make sure copy constructor is set up for instance!!!
   vector<string> att_names;
-  for (auto it = t_cp.begin(); it != t_cp.end(); ++it)
-    att_names.push_back(it->get_attribute_name());
+  for (auto it = t_cp.begin(); it != t_cp.end(); ++it) {
+    AttributeOccurrence *att_oc_ptr = (*it);
+    att_names.push_back(att_oc_ptr->get_attribute_name());
+  }
   for (auto it = att_names.begin(); it != att_names.end(); ++it) {
     if (this->medoid_names.find(*it) == this->medoid_names.end())
       t_cp.delete_attribute_occurrence(*it);
   }
 
-  return this->nb_classifier.posterior_probability(t_cp);
+  return this->nb_classifier.class_probability(t_cp, class_label);
 }

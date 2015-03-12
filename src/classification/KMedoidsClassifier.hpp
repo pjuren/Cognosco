@@ -20,29 +20,37 @@
 #ifndef KMEDOIDS_CLASSIFIER_HPP_
 #define KMEDOIDS_CLASSIFIER_HPP_
 
+// std includes
+#include <set>
+
+// local includes
 #include "Dataset.hpp"
+#include "Classifier.hpp"
 #include "NaiveBayes.hpp"
 
 namespace Classifiers {
-  class KMedoids {
+  class KMedoids : public Classifier {
   public:
-    // constructors
+    // constructors and destructors
+    KMedoids() : Classifier(), nb_classifier(NaiveBayes()),
+                 medoid_names(std::set<std::string>()),
+                 name_att("") {}
+    ~KMedoids() {}
 
     // public inspectors
-    double membership_probability(const Instance &test_instance,
-                                  const std::string &class_label) const;
-    double posterior_probability(const Instance &test_instance,
-                                 const std::string &class_label) const;
+    double class_probability(const Instance &test_instance,
+                             const std::string &class_label) const;
     std::string to_string() const;
 
     // public mutators
     void learn(const Dataset &training_instances,
                const std::string &class_label,
                const std::set<size_t> &ignore_instance_ids = std::set<size_t>());
+    void set_name_att(const std::string &s) { this->name_att = s; }
   private:
-    std::string learned_class;
     NaiveBayes nb_classifier;
-    std::vector<std::string> medoid_names;
+    std::set<std::string> medoid_names;
+    std::string name_att;
   };
 }
 
