@@ -24,6 +24,7 @@
 #include <vector>
 #include <sstream>
 #include <unordered_map>
+#include <set>
 
 #include "Instance.hpp"
 #include "Attribute.hpp"
@@ -35,7 +36,7 @@ public:
   Dataset() : instances(std::vector<Instance>()),
               att_descr_ptrs(std::vector<Attribute*>()) {}
   Dataset(const Dataset &d);
-  Dataset(const Dataset &d, const std::vector<size_t> exclude_insts);
+  Dataset(const Dataset &d, const std::set<size_t> exclude_insts);
   //~Dataset();
 
   // types
@@ -67,7 +68,7 @@ public:
   void add_attribute(const Attribute &att_desc);
   void add_instance(const Instance &instance);
   void set_attribute_type(const size_t k, const AttributeType &type);
-  void delete_attribute(Attribute *att_desc);
+  void delete_attribute(const std::string &name);
   iterator begin() { return this->instances.begin(); }
   iterator end() { return this->instances.end(); }
 
@@ -75,6 +76,9 @@ private:
   // private instance variables
   std::vector<Instance> instances;
   std::vector<Attribute*> att_descr_ptrs;
+
+  // private mutators
+  void delete_attribute(const Attribute *att_desc);
 };
 
 typedef std::unordered_map<std::string, std::vector<double> > AttFoldCounts;

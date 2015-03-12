@@ -33,6 +33,17 @@
 using std::string;
 using std::vector;
 
+Dataset::Dataset(const Dataset &d, const std::set<size_t> exclude_insts) {
+  for (auto it = d.instances.begin(); it != d.instances.end(); ++it) {
+    if (exclude_insts.find(it->get_instance_id()) == exclude_insts.end()) {
+      this->instances.push_back(*it);
+    }
+  }
+  for (auto att_descr : d.att_descr_ptrs) {
+    this->att_descr_ptrs.push_back(new Attribute(*att_descr));
+  }
+}
+
 void
 Dataset::add_instance(const Instance &inst) {
   this->instances.push_back(inst);
@@ -44,7 +55,7 @@ Dataset::add_attribute(const Attribute &att_desc) {
 }
 
 void
-Dataset::delete_attribute(Attribute *att_desc) {
+Dataset::delete_attribute(const Attribute *att_desc) {
   auto to_del = std::find(this->att_descr_ptrs.begin(),
                           this->att_descr_ptrs.end(), att_desc);
   if (to_del == this->att_descr_ptrs.end()) {
@@ -59,6 +70,23 @@ Dataset::delete_attribute(Attribute *att_desc) {
 
   this->att_descr_ptrs.erase(to_del);
   delete (*to_del);
+}
+
+void
+Dataset::delete_attribute(const string &name) {
+  Attribute* ptr = NULL;
+  for (auto at_ptr : this->att_descr_ptrs) {
+    if (at_ptr->get_name() == name) {
+      ptr = at_ptr;
+    }
+  }
+  if (ptr == NULL) {
+    std::stringstream ss;
+    ss << "Cannot delete attribute " << name
+       << " from dataset; no such attribute";
+    throw CognoscoError(ss.str());
+  }
+  this->delete_attribute(ptr);
 }
 
 const Attribute*
