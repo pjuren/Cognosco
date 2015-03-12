@@ -29,6 +29,7 @@
 #include "CSVLoader.hpp"
 #include "CognoscoError.hpp"
 #include "NaiveBayes.hpp"
+#include "KMedoidsClassifier.hpp"
 
 // bring these into the current namespace..
 using std::set;
@@ -38,23 +39,43 @@ using std::endl;
 using std::string;
 using std::vector;
 
+/*****************************************************************************
+ *                            CLASSIFIER FACTORY                             *
+ *****************************************************************************/
+
+static Classifier*
+build_classifier(const string &name) {
+  if (name == "NaiveBayes") return new NaiveBayes();
+  if (name == "KMedoids") return new Classifiers::KMedoids();
+  throw CognoscoError("Unknown classifier type: " + name);
+}
+
+static void
+destroy_classifier(Classifier* c_ptr) {
+  delete c_ptr;
+}
+
+/*****************************************************************************
+ *                              CLASSIFICATION                               *
+ *****************************************************************************/
+
 /**
  * output an instance including all its attributes and one extra column for
  * its positive class probability.
  */
-void
-output_classification(const Instance &inst, const NaiveBayes &nb,
+static void
+output_classification(const Instance &inst, const Classifier &clsfr,
                       const vector<string> &att_names,
                       const string &pos_class_val) {
   for (size_t j = 0; j < att_names.size(); j++) {
     if (j != 0) cout << "\t";
     cout << inst.get_att_occurrence(att_names[j])->to_string();
   }
-  cout << "\t" << nb.membership_probability(inst, pos_class_val) << endl;
+  cout << "\t" << clsfr.class_probability(inst, pos_class_val) << endl;
 }
 
-void
-output_classification(const Dataset &d, const NaiveBayes &nb,
+static void
+output_classification(const Dataset &d, const Classifier &clsfr,
                       const string &pos_class_val) {
   vector<string> attribute_names;
   for (Dataset::const_attribute_iterator it = d.begin_attributes();
@@ -62,14 +83,18 @@ output_classification(const Dataset &d, const NaiveBayes &nb,
     attribute_names.push_back((*it)->get_name());
   }
   for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
-    output_classification(*inst, nb, attribute_names, pos_class_val);
+    output_classification(*inst, clsfr, attribute_names, pos_class_val);
   }
 }
 
 
-void
-k_fold_cross_validation(const Dataset &d, const size_t k,
-                        const string &class_label,
+/*****************************************************************************
+ *                             CROSS-VALIDATION                              *
+ *****************************************************************************/
+
+static void
+k_fold_cross_validation(const string classifier_nm, const Dataset &d,
+                        const size_t k, const string &class_label,
                         const string &pos_class_val) {
   cerr << "creating splitter" << endl;
   DatasetSplitter x_validation_splitter(k);
@@ -78,7 +103,7 @@ k_fold_cross_validation(const Dataset &d, const size_t k,
 
   cerr << "extracting attributes" << endl;
   vector<string> att_names;
-  for (Dataset::const_attribute_iterator it = d.begin_attributes(); it != d.end_attributes(); ++it) {
+  for (auto it = d.begin_attributes(); it != d.end_attributes(); ++it) {
     Attribute* att_ptr = (*it );
     att_names.push_back(att_ptr->get_name());
   }
@@ -86,26 +111,29 @@ k_fold_cross_validation(const Dataset &d, const size_t k,
   cerr << "processing folds" << endl;
   // for each fold, learn the classifier and output
   for (size_t fold_num = 0; fold_num < k; ++fold_num) {
-    NaiveBayes nb;
+    Classifier *clsfr = build_classifier(classifier_nm);
+
     //<< "pull out instance IDs for fold " << k << " when vec has length " << instances_in_fold.size();
     set<size_t> exclude(instances_in_fold[fold_num].begin(), instances_in_fold[fold_num].end());
-    cerr << "learning NB classifier for fold " << fold_num << endl;
-    nb.learn(d, class_label, exclude);
+    cerr << "learning classifier for fold " << fold_num << endl;
+    clsfr->learn(d, class_label, exclude);
     for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
       if (exclude.find(inst->get_instance_id()) != exclude.end()) {
-        output_classification(*inst, nb, att_names, pos_class_val);
+        output_classification(*inst, *clsfr, att_names, pos_class_val);
       }
     }
+
+    destroy_classifier(clsfr);
   }
 }
 
-void
-leave_one_out_cross_validation(const Dataset &d, const size_t k,
-                        const string &class_label,
-                        const string &pos_class_val) {
+static void
+leave_one_out_cross_validation(const string &classifier_nm, const Dataset &d,
+                               const size_t k, const string &class_label,
+                               const string &pos_class_val) {
   cerr << "extracting attributes" << endl;
   vector<string> att_names;
-  for (Dataset::const_attribute_iterator it = d.begin_attributes(); it != d.end_attributes(); ++it) {
+  for (auto it = d.begin_attributes(); it != d.end_attributes(); ++it) {
     Attribute* att_ptr = (*it );
     att_names.push_back(att_ptr->get_name());
   }
@@ -113,9 +141,10 @@ leave_one_out_cross_validation(const Dataset &d, const size_t k,
   for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
     set<size_t> exclude;
     exclude.insert(inst->get_instance_id());
-    NaiveBayes nb;
-    nb.learn(d, class_label, exclude);
-    output_classification(*inst, nb, att_names, pos_class_val);
+    Classifier *clsfr = build_classifier(classifier_nm);
+    clsfr->learn(d, class_label, exclude);
+    output_classification(*inst, *clsfr, att_names, pos_class_val);
+    destroy_classifier(clsfr);
   }
 }
 
@@ -195,19 +224,20 @@ main(int argc, const char* argv[]) {
       assert(cross_validation_method == "stratified_ten_fold" ||
              cross_validation_method == "hold-one-out");
       if (cross_validation_method == "stratified_ten_fold")
-        k_fold_cross_validation(d, 10, class_attribute_name,
+        k_fold_cross_validation(classifier, d, 10, class_attribute_name,
                                 positive_class_value);
       else
-        leave_one_out_cross_validation(d, 10, class_attribute_name,
+        leave_one_out_cross_validation(classifier, d, 10, class_attribute_name,
                                        positive_class_value);
     } else {
       Dataset train, test;
       csv_loader.load(training_dataset_fn, train, VERBOSE);
       csv_loader.load(testing_dataset_fn, test, VERBOSE);
-      NaiveBayes nb;
-      nb.learn(train, class_attribute_name);
-      cerr << nb.to_string() << endl;
-      output_classification(test, nb, positive_class_value);
+      Classifier *clsfr = build_classifier(classifier);
+      clsfr->learn(train, class_attribute_name);
+      cerr << clsfr->to_string() << endl;
+      output_classification(test, *clsfr, positive_class_value);
+      destroy_classifier(clsfr);
     }
   } catch (const CognoscoError &e) {
     cerr << "ERROR:\t" << e.what() << endl;

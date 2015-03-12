@@ -27,6 +27,7 @@
 #include <unordered_map>
 
 // local Cognosco includes
+#include "Classifier.hpp"
 #include "Dataset.hpp"
 #include "CognoscoError.hpp"
 #include "StringUtils.hpp"
@@ -53,9 +54,9 @@ public:
  *                                THE CLASSIFIER                             *
  *****************************************************************************/
 
-class NaiveBayes {
+class NaiveBayes : public Classifier {
 public:
-  // cosntructors
+  // constructors
 
   // public inspectors
   double membership_probability(const Instance &test_instance,
@@ -70,13 +71,16 @@ public:
                       const std::string &att_name) const;
   double get_mean(const std::string &class_name,
                   const std::string &att_name) const;
+  double class_probability(const Instance &test_instance,
+                           const std::string &class_label) const {
+    return this->membership_probability(test_instance, class_label);
+  }
 
   // public mutators
   void learn(const Dataset &training_instances,
              const std::string &class_label,
              const std::set<size_t> &ignore_instance_ids = std::set<size_t>());
 private:
-  std::string learned_class;
   std::unordered_map<std::string, double> class_priors;
   AttClassMap class_variances;
   AttClassMap class_means;
