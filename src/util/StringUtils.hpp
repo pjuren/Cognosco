@@ -24,6 +24,19 @@
 #include <vector>
 #include <set>
 
+/******************************************************************************
+ *                                  HASHING                                   *
+ ******************************************************************************/
+
+struct string_pair_hash {
+  size_t operator()(const std::pair<std::string, std::string> &names) const {
+    return std::hash<std::string>()(names.first) ^ \
+           std::hash<std::string>()(names.second);
+  }
+};
+
+
+
 template < class ContainerT >
 void
 tokenize(const std::string& str, ContainerT& tokens,

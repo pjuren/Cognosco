@@ -165,7 +165,7 @@ NaiveBayes::learn(const Dataset &training_instances,
   unordered_map<string, double> class_counts;
 
   // for computing mean and variance
-  typedef unordered_map<pair<string, string>, RunningStat, name_pair_hash> ClsAttMap;
+  typedef unordered_map<pair<string, string>, RunningStat, string_pair_hash> ClsAttMap;
   ClsAttMap running_stats;
 
   size_t skipped = 0;

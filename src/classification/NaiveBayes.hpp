@@ -29,20 +29,14 @@
 // local Cognosco includes
 #include "Dataset.hpp"
 #include "CognoscoError.hpp"
+#include "StringUtils.hpp"
 
 /******************************************************************************
  *                                   TYPES                                    *
  ******************************************************************************/
 
-struct name_pair_hash {
-  size_t operator()(const std::pair<std::string, std::string> &names) const {
-    return std::hash<std::string>()(names.first) ^ \
-           std::hash<std::string>()(names.second);
-  }
-};
-
 typedef std::unordered_map<std::pair<std::string, std::string>,
-                           double, name_pair_hash> AttClassMap;
+                           double, string_pair_hash> AttClassMap;
 
 
 /*****************************************************************************
