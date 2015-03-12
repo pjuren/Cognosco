@@ -23,41 +23,34 @@
 
 // local includes
 #include "Dataset.hpp"
+#include "KMedoids.hpp" // this is going to be a problem...???
 
 // bring these names into the local namespace
 using std::string;
 using std::vector;
 
+/**
+ * convert a dataset that gives the distance
+ * Instances in the intial dataset have  N + 2 attributes, where N of these
+ * are distances to the other N instances in the dataset and the extra two are
+ * the name of the instance and the class. The names must match the attributes.
+ * A new dataset is constructed where each instance is described only by the
+ * attributes named in medoids.
+ */
 static void
-build_new_instance(const DistanceMatrix &m, Dataset &d,
-                   const Instance &inst, const string &inst_name_att_name) {
-  string inst_name = inst.get_att_occurrence(instance_name_att_name)->to_string();
-  instance res;
-  for (auto ait = d.attribtue_begin(); ait != d.->attribtue_end(); ++ait) {
-    const Attribute* at_ptr = (*ait);
-    string nm = at_ptr->get_attribute_name();
-    double dist = d[nm][inst_name];
-    res.add_attribute_occurrance(dist, at_ptr);
-  }
-  dataset.add_instance(instance);
-}
-
-static void
-build_new_dataset(const DistanceMatrix &m, Dataset &new_ds,
-                  const Dataset &exist_ds, const vector<string> &medoids,
+build_new_dataset(const Dataset &exist_ds, Dataset &new_ds,
+                  const vector<string> &medoids,
                   const std::set<size_t> &ignore_inst_ids,
                   const string &inst_name_att_name) {
-  d.clear();
-  for (size_t i = 0; i < medoids.size(); ++i) {
-    d.add_attribute(Attribute(medoids[i], NUMERIC));
+  new_ds = Dataset(exist_ds, ignore_inst_ids);
+
+  vector<string> att_names;
+  for (auto it = new_ds.attribute_begin(); it != new_ds.attribute_end(); ++it) {
+    att_names.push_back(it->get_name());
   }
-  size_t skipper = 0;
-  for (auto it = exist_ds.begin(); it != exist_ds.end(); ++it) {
-    if (ignore_inst_ids.find(it->get_instance_id()) != ignore_inst_ids.end()) {
-      skipped += 1;
-      continue;
-    }
-    build_new_instance(m, d, *it, inst_name_att_name);
+
+  for (auto name : att_names) {
+    if (medoids.find(name) == medoids.end()) new_ds.delete_attribute(name);
   }
 }
 
@@ -104,17 +97,14 @@ Classifiers::KMedoids::learn(const Dataset &train_instances,
 double
 Classifiers::KMedoids::posterior_probability(const Instance &test_instance,
                                              const string &class_label) const {
-  // TODO this is a pretty round-about way to do it...
-  Dataset exst;
-  exst.add_instance(test_instance);
-  Dataset nds;
-  build_new_dataset()
-
-  double res = 1;
-  for (Instance::const_iterator it = test_instance.begin();
-       it != test_instance.end(); ++it) {
-    if ((*it)->get_attribute_name() == this->learned_class) continue;
-    res *= this->get_conditional_prob(*it, class_label);
+  Instance t_cp(test_instance) // !!!!!!!!!! make sure copy constructor is set up for instance!!!
+  vector<string> att_names;
+  for (auto it = t_cp.begin(); it != t_cp.end(); ++it)
+    att_names.push_back(it->get_attribute_name());
+  for (auto it = att_names.begin(); it != att_names.end(); ++it) {
+    if (this->medoid_names.find(*it) == this->medoid_names.end())
+      t_cp.delete_attribute_occurrence(*it);
   }
-  return res * this->get_prior_prob(class_label);
+
+  return this->nb_classifier.posterior_probability(t_cp);
 }
