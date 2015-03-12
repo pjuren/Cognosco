@@ -43,6 +43,24 @@ Dataset::add_attribute(const Attribute &att_desc) {
   att_descr_ptrs.push_back(new Attribute(att_desc));
 }
 
+void
+Dataset::delete_attribute(Attribute *att_desc) {
+  auto to_del = std::find(this->att_descr_ptrs.begin(),
+                          this->att_descr_ptrs.end(), att_desc);
+  if (to_del == this->att_descr_ptrs.end()) {
+    std::stringstream ss;
+    ss << "cannot delete attribute " << att_desc->get_name()
+       << " from dataset; no such attribute";
+    throw CognoscoError(ss.str());
+  }
+  for (auto it = instances.begin(); it != instances.end(); ++it) {
+    it->delete_attribute_occurrence(att_desc->get_name());
+  }
+
+  this->att_descr_ptrs.erase(to_del);
+  delete (*to_del);
+}
+
 const Attribute*
 Dataset::get_attribute_description_ptr(size_t k) const {
   if (k >= this->att_descr_ptrs.size()) {

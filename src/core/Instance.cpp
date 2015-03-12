@@ -17,11 +17,19 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+// stl includes
 #include <sstream>
+#include <string>
 
+// local includes
 #include "Instance.hpp"
 #include "CognoscoError.hpp"
 
+// bring the following into the local namespace
+using std::string;
+using std::vector;
+
+// init. static variables in Instance class
 size_t Instance::instance_counter = 0;
 
 
@@ -45,10 +53,6 @@ Instance::~Instance() {
     delete this->attributes[i];
   }
 }
-
-
-
-
 
 
 /*****************************************************************************
@@ -91,17 +95,27 @@ Instance::get_instance_id() const {
  *****************************************************************************/
 
 void
-Instance::add_attribute_occurrance(const double value,
+Instance::add_attribute_occurrence(const double value,
                                     const Attribute *att_desc_p) {
   AttributeOccurrence *x = new NumericAttributeOccurrence(value, att_desc_p);
   this->attributes.push_back(x);
-  this->instance_counter += 1;
 };
 
 void
-Instance::add_attribute_occurrance(const std::string value,
+Instance::add_attribute_occurrence(const std::string value,
                                     const Attribute *att_desc_p) {
   AttributeOccurrence *x = new NominalAttributeOccurrence(value, att_desc_p);
   this->attributes.push_back(x);
-  this->instance_counter += 1;
 };
+
+void
+Instance::delete_attribute_occurrence(const string &att_name) {
+  auto new_end = std::remove_if(this->attributes.begin(),
+                                this->attributes.end(),
+                                [=](AttributeOccurrence* ao) {
+                                  return ao->get_attribute_name() == att_name;
+                                });
+  for (auto it = new_end; it != this->attributes.end(); ++it)
+    delete (*it);
+  this->attributes.erase(new_end, this->attributes.end());
+}

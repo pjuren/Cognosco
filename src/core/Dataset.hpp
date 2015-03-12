@@ -32,7 +32,10 @@
 class Dataset {
 public:
   // constructors and destructors
-  //Dataset();
+  Dataset() : instances(std::vector<Instance>()),
+              att_descr_ptrs(std::vector<Attribute*>()) {}
+  Dataset(const Dataset &d);
+  Dataset(const Dataset &d, const std::vector<size_t> exclude_insts);
   //~Dataset();
 
   // types
@@ -64,6 +67,7 @@ public:
   void add_attribute(const Attribute &att_desc);
   void add_instance(const Instance &instance);
   void set_attribute_type(const size_t k, const AttributeType &type);
+  void delete_attribute(Attribute *att_desc);
   iterator begin() { return this->instances.begin(); }
   iterator end() { return this->instances.end(); }
 

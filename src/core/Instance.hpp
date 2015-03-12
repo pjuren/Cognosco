@@ -54,10 +54,11 @@ public:
   }
 
   // mutators
-  void add_attribute_occurrance(const std::string value,
+  void add_attribute_occurrence(const std::string value,
                                 const Attribute *att_desc_ptr);
-  void add_attribute_occurrance(const double value,
+  void add_attribute_occurrence(const double value,
                                 const Attribute *att_desc_ptr);
+  void delete_attribute_occurrence(const std::string &att_name);
   iterator begin() { return this->attributes.begin(); }
   iterator end() { return this->attributes.end(); }
 
