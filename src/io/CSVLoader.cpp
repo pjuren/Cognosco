@@ -77,19 +77,19 @@ CSVLoader::load(const std::string &filename, Dataset &dataset,
           try {
             // try to treat as a floating point number
             double d_val (std::stof(parts[i]));
-            instance.add_attribute_occurrance(d_val, ad_ptr);
+            instance.add_attribute_occurrence(d_val, ad_ptr);
             dataset.set_attribute_type(i, NUMERIC);
           } catch (const std::invalid_argument &e) {
             // if we fail to parse as a float, treat as nominal
-            instance.add_attribute_occurrance(strip(parts[i]), ad_ptr);
+            instance.add_attribute_occurrence(strip(parts[i]), ad_ptr);
             dataset.set_attribute_type(i, NOMINAL);
           }
         } else if (att_type == NOMINAL) {
-          instance.add_attribute_occurrance(strip(parts[i]), ad_ptr);
+          instance.add_attribute_occurrence(strip(parts[i]), ad_ptr);
         } else if (att_type == NUMERIC) {
           try {
             double d_val (std::stof(parts[i]));
-            instance.add_attribute_occurrance(d_val, ad_ptr);
+            instance.add_attribute_occurrence(d_val, ad_ptr);
           } catch (const std::invalid_argument &e) {
             std::stringstream ss;
             ss << "failed to parse " << parts[i] << " as numeric";
