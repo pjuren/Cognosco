@@ -200,6 +200,7 @@ main(int argc, const char* argv[]) {
       }
 
       clsfr = build_classifier(classifier);
+      cerr << "calling set specific.." << endl;
       clsfr->set_classifier_specific_options(cmdline);
 
       if (VERBOSE) {
@@ -222,7 +223,7 @@ main(int argc, const char* argv[]) {
     }
 
 
-    CSVLoader csv_loader("\t");
+    CSVLoader csv_loader(",");
     if (testing_dataset_fn.empty()) {
       cerr << "got here" << endl;
       Dataset d;
@@ -240,7 +241,6 @@ main(int argc, const char* argv[]) {
       Dataset train, test;
       csv_loader.load(training_dataset_fn, train, VERBOSE);
       csv_loader.load(testing_dataset_fn, test, VERBOSE);
-      Classifier *clsfr = build_classifier(classifier);
       clsfr->learn(train, class_attribute_name);
       cerr << clsfr->to_string() << endl;
       output_classification(test, *clsfr, positive_class_value);
