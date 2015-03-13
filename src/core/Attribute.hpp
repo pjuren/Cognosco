@@ -40,6 +40,7 @@ public:
   // inspectors
   const std::string& get_name() const;
   const AttributeType& get_attribute_type() const;
+  std::string get_attribute_type_string() const;
 
   // mutators
   void set_type(const AttributeType &type);

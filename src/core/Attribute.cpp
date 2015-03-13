@@ -51,6 +51,15 @@ Attribute::set_type(const AttributeType &type) {
   this->attr_type = type;
 }
 
+string
+Attribute::get_attribute_type_string() const {
+  if (this->get_attribute_type() == NUMERIC) return "NUMERIC";
+  if (this->get_attribute_type() == ORDINAL) return "ORDINAL";
+  if (this->get_attribute_type() == NOMINAL) return "NOMINAL";
+  if (this->get_attribute_type() == NULL_ATTRIBUTE_TYPE) return "NULL_TYPE";
+  return "UNKNOWN";
+}
+
 
 /*****************************************************************************
  *                      BASE ATTRIBTUE OCCURRENCE CLASS                      *
