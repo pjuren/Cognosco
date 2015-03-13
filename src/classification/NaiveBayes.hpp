@@ -27,6 +27,7 @@
 #include <unordered_map>
 
 // local Cognosco includes
+#include "CLI.hpp"
 #include "Classifier.hpp"
 #include "Dataset.hpp"
 #include "CognoscoError.hpp"
@@ -75,11 +76,16 @@ public:
                            const std::string &class_label) const {
     return this->membership_probability(test_instance, class_label);
   }
+  std::string usage() const;
 
   // public mutators
   void learn(const Dataset &training_instances,
              const std::string &class_label,
              const std::set<size_t> &ignore_instance_ids = std::set<size_t>());
+  void set_classifier_specific_options(Commandline &cmdline);
+  void clear();
+
+
 private:
   std::unordered_map<std::string, double> class_priors;
   AttClassMap class_variances;

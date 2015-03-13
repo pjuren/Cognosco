@@ -153,6 +153,12 @@ NaiveBayes::to_string() const {
   return ss.str();
 }
 
+std::string
+NaiveBayes::usage() const {
+  return "NaiveBayes specific options";
+}
+
+
 /*****************************************************************************
  *                                MUTATORS                                   *
  *****************************************************************************/
@@ -203,4 +209,16 @@ NaiveBayes::learn(const Dataset &training_instances,
   }
 
   this->learned_class = class_label;
+}
+
+void
+NaiveBayes::set_classifier_specific_options(Commandline &cmdline) {
+  //
+}
+
+void
+NaiveBayes::clear() {
+  this->class_priors.clear();
+  this->class_variances.clear();
+  this->class_means.clear();
 }
