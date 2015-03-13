@@ -63,7 +63,7 @@ CSVLoader::load(const std::string &filename, Dataset &dataset,
       // create attributes
       for (size_t i = 0; i < parts.size(); ++i) {
         // TODO remove assumption that everything is numeric...
-        dataset.add_attribute(Attribute(parts[i], NULL_ATTRIBUTE_TYPE));
+        dataset.add_attribute(Attribute(strip(parts[i]), NULL_ATTRIBUTE_TYPE));
       }
       first = false;
     } else {
@@ -110,7 +110,8 @@ CSVLoader::load(const std::string &filename, Dataset &dataset,
     for (Dataset::const_attribute_iterator it = dataset.begin_attributes();
          it != dataset.end_attributes(); ++it) {
       if (it != dataset.begin_attributes()) cerr << ", ";
-      cerr << (*it)->get_name();
+      cerr << (*it)->get_name() << " ("
+           << (*it)->get_attribute_type_string() << ")";
     }
     cerr << endl;
   }
