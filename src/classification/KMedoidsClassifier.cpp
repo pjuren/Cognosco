@@ -32,6 +32,26 @@ using std::string;
 using std::vector;
 using std::set;
 
+
+/*****************************************************************************
+ *                              UI DEFINITION                                *
+ *****************************************************************************/
+
+static CommandlineInterface
+get_cli() {
+  const size_t MIN_ARGS = 0;
+  const size_t MAX_ARGS = 0;
+  const string about = "about kmeds classifier...";
+
+  CommandlineInterface cli ("KMedoidsClassifier", about, MIN_ARGS, MAX_ARGS);
+  cli.add_boolean_option("verbose", 'v', "output additional status messages "
+                         "during run to stderr", false);
+  cli.add_string_option("name-attribute", 'n', "the attribute which provides "
+                        "the name of the instances");
+  cli.add_size_option("k", 'k', "number of clusters to use", 2);
+  return cli;
+}
+
 /*****************************************************************************
  *                         STATIC HELPER FUNCTIONS                           *
  *****************************************************************************/
@@ -140,4 +160,25 @@ Classifiers::KMedoids::class_probability(const Instance &test_instance,
   }
 
   return this->nb_classifier.class_probability(t_cp, class_label);
+}
+
+std::string
+Classifiers::KMedoids::usage() const {
+  std::stringstream ss;
+  ss << "KMedoidsClassifier specific options" << std::endl;
+  ss << get_cli().usage() << std::endl;
+  return ss.str();
+}
+
+void
+Classifiers::KMedoids::set_classifier_specific_options(Commandline &cmdline) {
+  CommandlineInterface cli (get_cli());
+  cli.consume('n', cmdline, this->name_att);
+  cli.consume('k', cmdline, this->k);
+}
+
+void
+Classifiers::KMedoids::clear() {
+  this->nb_classifier.clear();
+  this->medoid_names.clear();
 }

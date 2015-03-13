@@ -25,6 +25,7 @@
 
 // local includes
 #include "Dataset.hpp"
+#include "CLI.hpp"
 #include "Classifier.hpp"
 #include "NaiveBayes.hpp"
 
@@ -41,16 +42,20 @@ namespace Classifiers {
     double class_probability(const Instance &test_instance,
                              const std::string &class_label) const;
     std::string to_string() const;
+    std::string usage() const;
 
     // public mutators
     void learn(const Dataset &training_instances,
                const std::string &class_label,
                const std::set<size_t> &ignore_instance_ids = std::set<size_t>());
     void set_name_att(const std::string &s) { this->name_att = s; }
+    void set_classifier_specific_options(Commandline &cmdline);
+    void clear();
   private:
     NaiveBayes nb_classifier;
     std::set<std::string> medoid_names;
     std::string name_att;
+    size_t k;
   };
 }
 
