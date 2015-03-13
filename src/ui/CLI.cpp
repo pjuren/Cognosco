@@ -212,6 +212,27 @@ CommandlineInterface::usage() const {
   std::stringstream ss;
   ss << this->program_name << std::endl;
   ss << this->program_description << std::endl;
+
+  size_t longest_name_length = 0;
+  for (auto it = this->options.begin(); it != options.end(); ++it) {
+    Option* opt_ptr = (*it);
+    if (opt_ptr->get_long_name().size() > longest_name_length)
+      longest_name_length = opt_ptr->get_long_name().size();
+  }
+
+  ss << std::endl << "options" << std::endl;
+  for (auto it = this->options.begin(); it != options.end(); ++it) {
+    Option* opt_ptr = (*it);
+    ss << "-" << opt_ptr->get_short_name() << " ";
+    if (opt_ptr->is_required())
+      ss << "(required)";
+    else
+      ss << "          ";
+    string padding(longest_name_length - opt_ptr->get_long_name().size(), ' ');
+    ss << " --" << opt_ptr->get_long_name() << padding;
+    ss << " " << opt_ptr->get_description() << std::endl;
+  }
+
   return ss.str();
 }
 
