@@ -116,6 +116,55 @@ BooleanOption::parse_default(bool &dest) const {
   dest = this->default_val;
 }
 
+void
+SizeOption::parse(const OptionInstance& inst, size_t &dest) const {
+  size_t res;
+  int i_res;
+  try {
+    i_res = std::stoi(inst.get_value());
+  } catch (const std::invalid_argument &e) {
+    std::stringstream ss;
+    ss << "failed to parse " << inst.get_value() << " as size; "
+       << "invalid format";
+    throw OptionError(ss.str());
+  }
+  if (i_res < 0) {
+    std::stringstream ss;
+    ss << "failed to parse " << inst.get_value() << " as size; "
+       << "value is less than zero";
+    throw OptionError(ss.str());
+  }
+  // i_res known to be > 0
+  res = i_res;
+
+  if ((res > this->max_val) || (res < this->min_val)) {
+    std::stringstream ss;
+    ss << "failed to parse " << inst.get_value() << " as size; "
+       << "value outside of range (" << this->min_val << " - "
+       << this->max_val << " )";
+    throw OptionError(ss.str());
+  }
+  if (!this->accpt_vals.empty() && this->accpt_vals.find(res) ==\
+      this->accpt_vals.end()) {
+    std::stringstream ss;
+    ss << "Value for option " << this->get_long_name()
+       << "is not valid; accepted values are " << join(this->accpt_vals, ", ");
+    throw OptionError(ss.str());
+  }
+  dest = res;
+}
+
+// TODO -- can parse default functsion be replaced by template in super?
+// all basically the same.
+void
+SizeOption::parse_default(size_t &dest) const {
+  if (!has_default) {
+    std::stringstream ss;
+    ss << "No default value for option " << this->get_long_name();
+    throw OptionError(ss.str());
+  }
+  dest = this->default_val;
+}
 
 /*****************************************************************************
  *                        CommandLineInterface CLASS                         *
@@ -172,6 +221,15 @@ CommandlineInterface::add_boolean_option(const std::string &long_name,
                                          const bool default_value) {
   options.push_back(new BooleanOption(long_name, short_name, desc,
                                       default_value));
+}
+
+void
+CommandlineInterface::add_size_option(const std::string &long_name,
+                                      const char &short_name,
+                                      const std::string &desc,
+                                      const size_t default_value) {
+  options.push_back(new SizeOption(long_name, short_name, desc,
+                                   default_value));
 }
 
 /**

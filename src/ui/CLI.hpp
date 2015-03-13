@@ -92,6 +92,9 @@ public:
   virtual void parse(const OptionInstance& inst, double &dest) const {
     throw OptionError("Not implemented");
   };
+  virtual void parse(const OptionInstance& inst, size_t &dest) const {
+    throw OptionError("Not implemented");
+  };
 
   // for setting default values
   // -- derived class override to provide functionality
@@ -116,6 +119,12 @@ public:
   virtual void parse_default(double &dest) const {
     std::stringstream ss;
     ss << "conversion to double for default value of option -" << short_name
+       << " not possible";
+    throw OptionError(ss.str());
+  };
+  virtual void parse_default(size_t &dest) const {
+    std::stringstream ss;
+    ss << "conversion to size_t for default value of option -" << short_name
        << " not possible";
     throw OptionError(ss.str());
   };
@@ -212,6 +221,53 @@ private:
   std::set<int> accpt_vals; // if empty, anything in range is acceptable
   int min_val;
   int max_val;
+};
+
+class SizeOption : public Option {
+public:
+  SizeOption(const std::string &long_name,
+             const char short_name,
+             const std::string &descr,
+             const std::set<size_t> &acceptable) :
+                    Option(short_name, long_name, descr, true),
+                    accpt_vals(acceptable),
+                    has_default(false),
+                    default_val(0),
+                    min_val(std::numeric_limits<size_t>::min()),
+                    max_val(std::numeric_limits<size_t>::max()) {};
+  SizeOption(const std::string &long_name,
+             const char short_name,
+             const std::string &descr,
+             const size_t default_val) :
+                  Option(short_name, long_name, descr, false),
+                  accpt_vals(std::set<size_t>()),
+                  has_default(true),
+                  default_val(default_val),
+                  min_val(std::numeric_limits<size_t>::min()),
+                  max_val(std::numeric_limits<size_t>::max()) {};
+  SizeOption(const std::string &long_name,
+                const char short_name,
+                const std::string &descr,
+                const int &min_v,
+                const int &max_v) :
+                    Option(short_name, long_name, descr, true),
+                    accpt_vals(std::set<size_t>()),
+                    has_default(false),
+                    default_val(0),
+                    min_val(min_v),
+                    max_val(max_v) {};
+  void parse(const OptionInstance& inst, size_t &dest) const;
+  // TODO-- later...
+  //void parse(const OptionInstance& inst, int &dest) const;
+  //void parse(const OptionInstance& inst, double &dest) const;
+  //void parse(const OptionInstance& inst, std::string &dest) const;
+  void parse_default(size_t &dest) const;
+private:
+  std::set<size_t> accpt_vals; // if empty, anything in range is acceptable
+  bool has_default;
+  size_t default_val;
+  size_t min_val;
+  size_t max_val;
 };
 
 
@@ -327,6 +383,10 @@ public:
                           const char &short_name,
                           const std::string &desc,
                           const bool default_value);
+  void add_size_option(const std::string &long_name,
+                       const char &short_name,
+                       const std::string &desc,
+                       const size_t default_value);
 
   // consuming options from a command line
   template<class T>
