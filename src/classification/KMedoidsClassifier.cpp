@@ -111,9 +111,20 @@ Classifiers::KMedoids::learn(const Dataset &train_instances,
       skipped += 1;
       continue;
     }
+    std::cerr << "looking for " << this->name_att << std::endl;
+    for (auto xx = it->begin(); xx != it->end(); ++xx) {
+      std::cerr << (*xx)->get_attribute_name() << std::endl;
+    }
     string name_att_val = it->get_att_occurrence(this->name_att)->get_attribute_name();
     for (auto ait = it->begin(); ait != it->end(); ++ait) {
       AttributeOccurrence* aoc_ptr = (*ait);
+      const string this_att_name(aoc_ptr->get_attribute_name());
+
+      // skip class and name attributes
+      if ((this_att_name == class_label) || (this_att_name == this->name_att))
+        continue;
+
+      std::cerr << "doing '" << this_att_name << "'" << std::endl;
       m[std::make_pair(aoc_ptr->get_attribute_name(), name_att_val)] =\
         ((*aoc_ptr) * 1.0);
       inst_ids_set.insert(aoc_ptr->get_attribute_name());
