@@ -93,7 +93,7 @@ output_classification(const Dataset &d, const Classifier &clsfr,
  *****************************************************************************/
 
 static void
-k_fold_cross_validation(const string classifier_nm, const Dataset &d,
+k_fold_cross_validation(Classifier *clsfr, const Dataset &d,
                         const size_t k, const string &class_label,
                         const string &pos_class_val) {
   cerr << "creating splitter" << endl;
@@ -111,7 +111,7 @@ k_fold_cross_validation(const string classifier_nm, const Dataset &d,
   cerr << "processing folds" << endl;
   // for each fold, learn the classifier and output
   for (size_t fold_num = 0; fold_num < k; ++fold_num) {
-    Classifier *clsfr = build_classifier(classifier_nm);
+    clsfr->clear();
 
     //<< "pull out instance IDs for fold " << k << " when vec has length " << instances_in_fold.size();
     set<size_t> exclude(instances_in_fold[fold_num].begin(), instances_in_fold[fold_num].end());
@@ -128,7 +128,7 @@ k_fold_cross_validation(const string classifier_nm, const Dataset &d,
 }
 
 static void
-leave_one_out_cross_validation(const string &classifier_nm, const Dataset &d,
+leave_one_out_cross_validation(Classifier *clsfr, const Dataset &d,
                                const size_t k, const string &class_label,
                                const string &pos_class_val) {
   cerr << "extracting attributes" << endl;
@@ -141,7 +141,7 @@ leave_one_out_cross_validation(const string &classifier_nm, const Dataset &d,
   for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
     set<size_t> exclude;
     exclude.insert(inst->get_instance_id());
-    Classifier *clsfr = build_classifier(classifier_nm);
+    clsfr->clear();
     clsfr->learn(d, class_label, exclude);
     output_classification(*inst, *clsfr, att_names, pos_class_val);
     destroy_classifier(clsfr);
@@ -186,8 +186,9 @@ main(int argc, const char* argv[]) {
 
     // process general options/arguments from command line.
     CommandlineInterface cli (get_cli(argv[0]));
+    Commandline cmdline (argc, argv);
+    Classifier *clsfr = NULL;
     try {
-      Commandline cmdline (argc, argv);
       cli.consume('v', cmdline, VERBOSE);
       cli.consume('c', cmdline, classifier);
       cli.consume('r', cmdline, cross_validation_method);
@@ -198,19 +199,25 @@ main(int argc, const char* argv[]) {
         cli.consume(cmdline, 1, testing_dataset_fn);
       }
 
+      clsfr = build_classifier(classifier);
+      clsfr->set_classifier_specific_options(cmdline);
+
       if (VERBOSE) {
         cerr << "running with options: " << endl;
-        cerr << "Verbose: " << VERBOSE << endl;
-        cerr << "cross-val method: " << cross_validation_method << endl;
-        cerr << "clasifier: " << classifier << endl;
-        cerr << "class_att_name: " << class_attribute_name << endl;
-        cerr << "pos val: " << positive_class_value << endl;
-        cerr << "train fn: " << training_dataset_fn << endl;
-        cerr << "test fn: " << testing_dataset_fn << endl;
+        cerr << "\tVerbose: " << VERBOSE << endl;
+        cerr << "\tcross-val method: " << cross_validation_method << endl;
+        cerr << "\tclasifier: " << classifier << endl;
+        cerr << "\tclass_att_name: " << class_attribute_name << endl;
+        cerr << "\tpos val: " << positive_class_value << endl;
+        cerr << "\ttrain fn: " << training_dataset_fn << endl;
+        cerr << "\ttest fn: " << testing_dataset_fn << endl;
+        cerr << endl;
       }
     } catch (const OptionError &e) {
       cerr << e.what() << endl << endl;
-      cerr << cli.usage() << endl;
+      cerr << cli.usage() << endl << endl;
+      if (clsfr != NULL)
+        cerr << clsfr->usage() << endl << endl;
       return EXIT_FAILURE;
     }
 
@@ -219,15 +226,15 @@ main(int argc, const char* argv[]) {
     if (testing_dataset_fn.empty()) {
       cerr << "got here" << endl;
       Dataset d;
-      csv_loader.load(training_dataset_fn, d);
+      csv_loader.load(training_dataset_fn, d, VERBOSE);
 
       assert(cross_validation_method == "stratified_ten_fold" ||
              cross_validation_method == "hold-one-out");
       if (cross_validation_method == "stratified_ten_fold")
-        k_fold_cross_validation(classifier, d, 10, class_attribute_name,
+        k_fold_cross_validation(clsfr, d, 10, class_attribute_name,
                                 positive_class_value);
       else
-        leave_one_out_cross_validation(classifier, d, 10, class_attribute_name,
+        leave_one_out_cross_validation(clsfr, d, 10, class_attribute_name,
                                        positive_class_value);
     } else {
       Dataset train, test;
