@@ -51,7 +51,8 @@ public:
   const_iterator end() const { return this->instances.end(); }
   const_attribute_iterator begin_attributes() const { return this->att_descr_ptrs.begin(); }
   const_attribute_iterator end_attributes() const { return this->att_descr_ptrs.end(); }
-  size_t size() const {return instances.size(); }
+  size_t size() const { return instances.size(); }
+  size_t num_attributes() const { return this->att_descr_ptrs.size(); }
   const AttributeType& get_attribute_type(const size_t k) const;
   const Instance& operator[] (const int instance_id) const {
     // TODO fix nasty O(n)

@@ -69,7 +69,7 @@ Dataset::delete_attribute(const Attribute *att_desc) {
   }
 
   this->att_descr_ptrs.erase(to_del);
-  delete (*to_del);
+  delete (att_desc);
 }
 
 void
