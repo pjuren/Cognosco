@@ -241,6 +241,15 @@ void
 CommandlineInterface::add_string_option(const std::string &long_name,
                                         const char &short_name,
                                         const std::string &desc,
+                                        const std::string default_value) {
+  options.push_back(new StringOption(long_name, short_name, desc,
+                                     default_value));
+}
+
+void
+CommandlineInterface::add_string_option(const std::string &long_name,
+                                        const char &short_name,
+                                        const std::string &desc,
                                         const std::set<std::string> &accpt_vals) {
   options.push_back(new StringOption(long_name, short_name, desc, accpt_vals));
 }

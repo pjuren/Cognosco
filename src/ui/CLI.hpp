@@ -81,27 +81,43 @@ public:
 
   // parsers -- derived classes can overrride these to provide functionality
   virtual void parse(const OptionInstance& inst, bool &dest) const {
-    throw OptionError("Not implemented");
+    std::stringstream ss;
+    ss << "conversion to bool for option " << short_name << " not possible";
+    throw OptionError(ss.str());
   };
   virtual void parse(const OptionInstance& inst, std::string &dest) const {
-    throw OptionError("Not implemented");
+    std::stringstream ss;
+    ss << "conversion to string for option " << short_name << " not possible";
+    throw OptionError(ss.str());
   };
   virtual void parse(const OptionInstance& inst, int &dest) const {
-    throw OptionError("Not implemented");
+    std::stringstream ss;
+    ss << "conversion to integer for option " << short_name << " not possible";
+    throw OptionError(ss.str());
   };
   virtual void parse(const OptionInstance& inst, double &dest) const {
-    throw OptionError("Not implemented");
+    std::stringstream ss;
+    ss << "conversion to double for option " << short_name << " not possible";
+    throw OptionError(ss.str());
   };
   virtual void parse(const OptionInstance& inst, size_t &dest) const {
-    throw OptionError("Not implemented");
+    std::stringstream ss;
+    ss << "conversion to size for option " << short_name << " not possible";
+    throw OptionError(ss.str());
   };
   virtual void parse(const OptionInstance& inst,
                      std::set<std::string> &dest) const {
-    throw OptionError("Not implemented");
+    std::stringstream ss;
+    ss << "conversion to set of string for option " << short_name
+       << " not possible";
+    throw OptionError(ss.str());
   };
   virtual void parse(const OptionInstance& inst,
                      std::vector<std::string> &dest) const {
-    throw OptionError("Not implemented");
+    std::stringstream ss;
+    ss << "conversion to vector of string for option " << short_name
+       << " not possible";
+    throw OptionError(ss.str());
   };
 
   // for setting default values
@@ -164,6 +180,14 @@ public:
                const std::set<std::string> &acceptable) :
                     Option(short_name, long_name, descr),
                     accpt_vals(acceptable),
+                    has_default(true),
+                    default_val(default_val) {};
+  StringOption(const std::string &long_name,
+               const char short_name,
+               const std::string &descr,
+               const std::string &default_val) :
+                    Option(short_name, long_name, descr),
+                    accpt_vals(std::set<std::string>()),
                     has_default(true),
                     default_val(default_val) {};
   StringOption(const std::string &long_name,
@@ -417,6 +441,10 @@ public:
                          const char &short_name,
                          const std::string &desc,
                          const std::set<std::string> &acceptable_vals);
+  void add_string_option(const std::string &long_name,
+                         const char &short_name,
+                         const std::string &desc,
+                         const std::string default_value);
   void add_string_option(const std::string &long_name,
                          const char &short_name,
                          const std::string &desc);
