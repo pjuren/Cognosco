@@ -90,6 +90,15 @@ Instance::get_instance_id() const {
   return this->instance_id;
 }
 
+string
+Instance::to_string() const {
+  std::stringstream ss;
+  for (auto att_occ : this->attributes) {
+    ss << att_occ->to_string() << ", ";
+  }
+  return ss.str();
+}
+
 /*****************************************************************************
  *                                MUTATORS                                   *
  *****************************************************************************/
@@ -110,12 +119,22 @@ Instance::add_attribute_occurrence(const std::string value,
 
 void
 Instance::delete_attribute_occurrence(const string &att_name) {
-  auto new_end = std::remove_if(this->attributes.begin(),
-                                this->attributes.end(),
-                                [=](AttributeOccurrence* ao) {
-                                  return ao->get_attribute_name() == att_name;
-                                });
-  for (auto it = new_end; it != this->attributes.end(); ++it)
-    delete (*it);
-  this->attributes.erase(new_end, this->attributes.end());
+  std::vector<AttributeOccurrence*> removed;
+  std::copy_if(this->attributes.begin(), this->attributes.end(),
+               std::back_inserter(removed),
+               [=](AttributeOccurrence* ao) {
+                 return ao->get_attribute_name() == att_name;
+               });
+  if (removed.empty()) {
+    throw CognoscoError("Cannot remove attribute " + att_name +\
+                        " from instance; no such attribute");
+  }
+  auto n_end = std::remove_if(this->attributes.begin(), this->attributes.end(),
+                              [=](AttributeOccurrence* ao) {
+                                return ao->get_attribute_name() == att_name;
+                              });
+  this->attributes.erase(n_end, this->attributes.end());
+  for (auto ptr : removed) {
+    delete ptr;
+  }
 }

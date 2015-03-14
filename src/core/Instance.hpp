@@ -52,6 +52,7 @@ public:
   const AttributeOccurrence* operator[] (const std::string &name) const {
     return this->get_att_occurrence(name);
   }
+  std::string to_string() const;
 
   // mutators
   void add_attribute_occurrence(const std::string value,
@@ -63,10 +64,11 @@ public:
   iterator end() { return this->attributes.end(); }
 
 private:
+  // instance variables
   size_t instance_id;
   std::vector<AttributeOccurrence*> attributes;
 
-
+  // static class variables
   static size_t instance_counter;
 };
 
