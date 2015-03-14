@@ -66,24 +66,28 @@ destroy_classifier(Classifier* c_ptr) {
 static void
 output_classification(const Instance &inst, const Classifier &clsfr,
                       const vector<string> &att_names,
-                      const string &pos_class_val) {
+                      const string &pos_class_val,
+                      const set<string> &exclude_atts) {
   for (size_t j = 0; j < att_names.size(); j++) {
     if (j != 0) cout << "\t";
     cout << inst.get_att_occurrence(att_names[j])->to_string();
   }
-  cout << "\t" << clsfr.class_probability(inst, pos_class_val) << endl;
+  cout << "\t" << clsfr.class_probability(inst, pos_class_val,
+                                          exclude_atts) << endl;
 }
 
 static void
 output_classification(const Dataset &d, const Classifier &clsfr,
-                      const string &pos_class_val) {
+                      const string &pos_class_val,
+                      const set<string> &exclude_atts) {
   vector<string> attribute_names;
   for (Dataset::const_attribute_iterator it = d.begin_attributes();
        it != d.end_attributes(); ++it) {
     attribute_names.push_back((*it)->get_name());
   }
   for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
-    output_classification(*inst, clsfr, attribute_names, pos_class_val);
+    output_classification(*inst, clsfr, attribute_names,
+                          pos_class_val, exclude_atts);
   }
 }
 
@@ -95,7 +99,8 @@ output_classification(const Dataset &d, const Classifier &clsfr,
 static void
 k_fold_cross_validation(Classifier *clsfr, const Dataset &d,
                         const size_t k, const string &class_label,
-                        const string &pos_class_val) {
+                        const string &pos_class_val,
+                        const set<string> &exclude_atts) {
   cerr << "creating splitter" << endl;
   DatasetSplitter x_validation_splitter(k);
   cerr << "splitting dataset" << endl;
@@ -113,24 +118,23 @@ k_fold_cross_validation(Classifier *clsfr, const Dataset &d,
   for (size_t fold_num = 0; fold_num < k; ++fold_num) {
     clsfr->clear();
 
-    //<< "pull out instance IDs for fold " << k << " when vec has length " << instances_in_fold.size();
-    set<size_t> exclude(instances_in_fold[fold_num].begin(), instances_in_fold[fold_num].end());
-    cerr << "learning classifier for fold " << fold_num << endl;
-    clsfr->learn(d, class_label, exclude);
+    set<size_t> exclude_insts(instances_in_fold[fold_num].begin(),
+                              instances_in_fold[fold_num].end());
+    clsfr->learn(d, class_label, exclude_insts, exclude_atts);
     for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
-      if (exclude.find(inst->get_instance_id()) != exclude.end()) {
-        output_classification(*inst, *clsfr, att_names, pos_class_val);
+      if (exclude_insts.find(inst->get_instance_id()) != exclude_insts.end()) {
+        output_classification(*inst, *clsfr, att_names,
+                              pos_class_val, exclude_atts);
       }
     }
-
-    destroy_classifier(clsfr);
   }
 }
 
 static void
 leave_one_out_cross_validation(Classifier *clsfr, const Dataset &d,
                                const size_t k, const string &class_label,
-                               const string &pos_class_val) {
+                               const string &pos_class_val,
+                               const set<string> &exclude_atts) {
   cerr << "extracting attributes" << endl;
   vector<string> att_names;
   for (auto it = d.begin_attributes(); it != d.end_attributes(); ++it) {
@@ -139,12 +143,12 @@ leave_one_out_cross_validation(Classifier *clsfr, const Dataset &d,
   }
 
   for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
-    set<size_t> exclude;
-    exclude.insert(inst->get_instance_id());
+    set<size_t> exclude_insts;
+    exclude_insts.insert(inst->get_instance_id());
     clsfr->clear();
-    clsfr->learn(d, class_label, exclude);
-    output_classification(*inst, *clsfr, att_names, pos_class_val);
-    destroy_classifier(clsfr);
+    clsfr->learn(d, class_label, exclude_insts, exclude_atts);
+    output_classification(*inst, *clsfr, att_names,
+                          pos_class_val, exclude_atts);
   }
 }
 
@@ -170,6 +174,12 @@ get_cli(const string &prog_name) {
                         "as class");
   cli.add_string_option("positive-value", 'p', "value for the class attribute "
                         "that should be considered the positive class");
+  cli.add_boolean_option("whitespace-sep", 'w', "treat input files as having "
+                         "whitespace-separated fields, rather than comma "
+                         "separated", false);
+  cli.add_stringlist_option("exclude-attributes", 'e', "do not use these "
+                            "attribtues for model training; if more than one, "
+                            "provide as a quoted comma-separated list", "");
   return cli;
 }
 
@@ -177,12 +187,14 @@ int
 main(int argc, const char* argv[]) {
   try {
     bool VERBOSE = true;
+    bool whitespace_sep;
     string classifier;
     string cross_validation_method;
     string class_attribute_name;
     string positive_class_value;
     string training_dataset_fn;
     string testing_dataset_fn = "";
+    set<string> exclude_atts;
 
     // process general options/arguments from command line.
     CommandlineInterface cli (get_cli(argv[0]));
@@ -194,6 +206,8 @@ main(int argc, const char* argv[]) {
       cli.consume('r', cmdline, cross_validation_method);
       cli.consume('a', cmdline, class_attribute_name);
       cli.consume('p', cmdline, positive_class_value);
+      cli.consume('w', cmdline, whitespace_sep);
+      cli.consume('e', cmdline, exclude_atts);
       cli.consume(cmdline, 0, training_dataset_fn);
       if (cmdline.num_arguments() > 1) {
         cli.consume(cmdline, 1, testing_dataset_fn);
@@ -206,10 +220,13 @@ main(int argc, const char* argv[]) {
       if (VERBOSE) {
         cerr << "running with options: " << endl;
         cerr << "\tVerbose: " << VERBOSE << endl;
+        cerr << "\tseparate input fields on whitespace? " << whitespace_sep << endl;
         cerr << "\tcross-val method: " << cross_validation_method << endl;
         cerr << "\tclasifier: " << classifier << endl;
         cerr << "\tclass_att_name: " << class_attribute_name << endl;
         cerr << "\tpos val: " << positive_class_value << endl;
+        cerr << "\tattributes to exclude from training: "
+             << join(exclude_atts, ",") << endl;
         cerr << "\ttrain fn: " << training_dataset_fn << endl;
         cerr << "\ttest fn: " << testing_dataset_fn << endl;
         cerr << endl;
@@ -222,8 +239,12 @@ main(int argc, const char* argv[]) {
       return EXIT_FAILURE;
     }
 
+    // prepare for loading
+    string sep = ",";
+    if (whitespace_sep) sep = "\t";
+    CSVLoader csv_loader(sep);
 
-    CSVLoader csv_loader(",");
+
     if (testing_dataset_fn.empty()) {
       cerr << "got here" << endl;
       Dataset d;
@@ -233,19 +254,22 @@ main(int argc, const char* argv[]) {
              cross_validation_method == "hold-one-out");
       if (cross_validation_method == "stratified_ten_fold")
         k_fold_cross_validation(clsfr, d, 10, class_attribute_name,
-                                positive_class_value);
+                                positive_class_value, exclude_atts);
       else
         leave_one_out_cross_validation(clsfr, d, 10, class_attribute_name,
-                                       positive_class_value);
+                                       positive_class_value, exclude_atts);
     } else {
       Dataset train, test;
       csv_loader.load(training_dataset_fn, train, VERBOSE);
       csv_loader.load(testing_dataset_fn, test, VERBOSE);
-      clsfr->learn(train, class_attribute_name);
+      set<size_t> exclude_insts;
+      clsfr->learn(train, class_attribute_name, exclude_insts, exclude_atts);
       cerr << clsfr->to_string() << endl;
-      output_classification(test, *clsfr, positive_class_value);
-      destroy_classifier(clsfr);
+      output_classification(test, *clsfr, positive_class_value, exclude_atts);
     }
+
+    // we're done... cleanup
+    destroy_classifier(clsfr);
   } catch (const CognoscoError &e) {
     cerr << "ERROR:\t" << e.what() << endl;
     return EXIT_FAILURE;
