@@ -106,7 +106,8 @@ CSVLoader::load(const std::string &filename, Dataset &dataset,
   }
 
   if (VERBOSE) {
-    cerr << "loaded dataset from " << filename << " with attributes: ";
+    cerr << "loaded dataset from " << filename << endl;
+    cerr << "found " << dataset.num_attributes() << " attributes: ";
     for (Dataset::const_attribute_iterator it = dataset.begin_attributes();
          it != dataset.end_attributes(); ++it) {
       if (it != dataset.begin_attributes()) cerr << ", ";
