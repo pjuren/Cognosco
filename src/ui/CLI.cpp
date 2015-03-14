@@ -18,6 +18,7 @@
  */
 
 // stl includes
+#include <set>
 #include <vector>
 #include <string>
 #include <cassert>
@@ -30,6 +31,7 @@
 // bring these names into the local namespace
 using std::vector;
 using std::string;
+using std::set;
 
 
 /*****************************************************************************
@@ -166,6 +168,47 @@ SizeOption::parse_default(size_t &dest) const {
   dest = this->default_val;
 }
 
+void
+StringlistOption::parse(const OptionInstance &inst, set<string> &dest) const {
+  vector<string> tmp;
+  tokenize(inst.get_value(), tmp, this->separator);
+  dest.clear();
+  dest.insert(tmp.begin(), tmp.end());
+}
+
+// TODO -- replace with template? just container type varies...
+void
+StringlistOption::parse(const OptionInstance &inst,
+                        vector<string> &dest) const {
+  dest.clear();
+  tokenize(inst.get_value(), dest, this->separator);
+}
+
+void
+StringlistOption::parse_default(std::set<std::string> &dest) const {
+  if (!has_default) {
+    std::stringstream ss;
+    ss << "No default value for option " << this->get_long_name();
+    throw OptionError(ss.str());
+  }
+  vector<string> tmp;
+  tokenize(this->default_val, tmp, this->separator);
+  dest.clear();
+  dest.insert(tmp.begin(), tmp.end());
+}
+
+// TODO -- replace with template? just container type varies...
+void
+StringlistOption::parse_default(std::vector<std::string> &dest) const {
+  if (!has_default) {
+    std::stringstream ss;
+    ss << "No default value for option " << this->get_long_name();
+    throw OptionError(ss.str());
+  }
+  dest.clear();
+  tokenize(this->default_val, dest, this->separator);
+}
+
 /*****************************************************************************
  *                        CommandLineInterface CLASS                         *
  *****************************************************************************/
@@ -230,6 +273,16 @@ CommandlineInterface::add_size_option(const std::string &long_name,
                                       const size_t default_value) {
   options.push_back(new SizeOption(long_name, short_name, desc,
                                    default_value));
+}
+
+void
+CommandlineInterface::add_stringlist_option(const string &long_name,
+                                            const char &short_name,
+                                            const string &descr,
+                                            const string default_val,
+                                            const string sep) {
+  options.push_back(new StringlistOption(long_name, short_name, descr,
+                                         default_val, sep));
 }
 
 /**

@@ -95,6 +95,14 @@ public:
   virtual void parse(const OptionInstance& inst, size_t &dest) const {
     throw OptionError("Not implemented");
   };
+  virtual void parse(const OptionInstance& inst,
+                     std::set<std::string> &dest) const {
+    throw OptionError("Not implemented");
+  };
+  virtual void parse(const OptionInstance& inst,
+                     std::vector<std::string> &dest) const {
+    throw OptionError("Not implemented");
+  };
 
   // for setting default values
   // -- derived class override to provide functionality
@@ -126,6 +134,18 @@ public:
     std::stringstream ss;
     ss << "conversion to size_t for default value of option -" << short_name
        << " not possible";
+    throw OptionError(ss.str());
+  };
+  virtual void parse_default(std::set<std::string> &dest) const {
+    std::stringstream ss;
+    ss << "conversion to set of string for default value of option -"
+       << short_name << " not possible";
+    throw OptionError(ss.str());
+  };
+  virtual void parse_default(std::vector<std::string> &dest) const {
+    std::stringstream ss;
+    ss << "conversion to vector of string for default value of option -"
+       << short_name << " not possible";
     throw OptionError(ss.str());
   };
 private:
@@ -223,6 +243,7 @@ private:
   int max_val;
 };
 
+
 class SizeOption : public Option {
 public:
   SizeOption(const std::string &long_name,
@@ -268,6 +289,26 @@ private:
   size_t default_val;
   size_t min_val;
   size_t max_val;
+};
+
+
+class StringlistOption : public Option {
+public:
+  StringlistOption(const std::string &long_name, const char short_name,
+                   const std::string &descr, const std::string &def_val,
+                   const std::string &sep) :
+                        Option(short_name, long_name, descr, false),
+                        has_default(true),
+                        default_val(def_val),
+                        separator(sep) {};
+  void parse(const OptionInstance &inst, std::set<std::string> &dest) const;
+  void parse(const OptionInstance &inst, std::vector<std::string> &dest) const;
+  void parse_default(std::set<std::string> &dest) const;
+  void parse_default(std::vector<std::string> &dest) const;
+private:
+  bool has_default;
+  std::string default_val;
+  std::string separator;
 };
 
 
@@ -387,6 +428,11 @@ public:
                        const char &short_name,
                        const std::string &desc,
                        const size_t default_value);
+  void add_stringlist_option(const std::string &long_name,
+                             const char &short_name,
+                             const std::string &descr,
+                             const std::string default_val,
+                             const std::string sep = ",");
 
   // consuming options from a command line
   template<class T>
