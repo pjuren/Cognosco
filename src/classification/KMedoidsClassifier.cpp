@@ -31,6 +31,8 @@
 using std::string;
 using std::vector;
 using std::set;
+using std::cerr;
+using std::endl;
 
 
 /*****************************************************************************
@@ -68,7 +70,8 @@ static void
 build_new_dataset(const Dataset &exist_ds, Dataset &new_ds,
                   const set<string> &medoids,
                   const set<size_t> &ignore_inst_ids,
-                  const string &inst_name_att_name) {
+                  const string &inst_name_att_name,
+                  const string &class_label) {
   new_ds = Dataset(exist_ds, ignore_inst_ids);
 
   vector<string> att_names;
@@ -78,8 +81,10 @@ build_new_dataset(const Dataset &exist_ds, Dataset &new_ds,
   }
 
   for (auto name : att_names) {
-    if (std::find(medoids.begin(), medoids.end(), name) == medoids.end())
+    if (name == class_label) continue;
+    if (std::find(medoids.begin(), medoids.end(), name) == medoids.end()) {
       new_ds.delete_attribute(name);
+    }
   }
 }
 
@@ -100,33 +105,40 @@ Classifiers::KMedoids::to_string() const {
 void
 Classifiers::KMedoids::learn(const Dataset &train_instances,
                              const string &class_label,
-                             const std::set<size_t> &ignore_inst_ids) {
+                             const set<size_t> &ignore_inst_ids,
+                             const set<string> &ig_atts) {
+  // need to know the value of the name_att for the instances to be ignored
+  // so that when we encounter the attributes that give the distances to those
+  // instances, we can skip those too.
+  set<string> ignore_inst_nms;
+  for (auto inst_id : ignore_inst_ids) {
+    const Instance &inst(train_instances[inst_id]);
+    ignore_inst_nms.insert(inst[this->name_att]->to_string());
+  }
+
   // convert the dataset into a distance matrix
   std::cerr << "building distance matrix " << std::endl;
   DistanceMatrix m;
   size_t skipped = 0;
-  std::set<string> inst_ids_set;
+  set<string> inst_ids_set;
   for (auto it = train_instances.begin(); it != train_instances.end(); ++it) {
     if (ignore_inst_ids.find(it->get_instance_id()) != ignore_inst_ids.end()) {
       skipped += 1;
       continue;
     }
-    std::cerr << "looking for " << this->name_att << std::endl;
-    for (auto xx = it->begin(); xx != it->end(); ++xx) {
-      std::cerr << (*xx)->get_attribute_name() << std::endl;
-    }
-    string name_att_val = it->get_att_occurrence(this->name_att)->get_attribute_name();
+
+    string name_att_val = it->get_att_occurrence(this->name_att)->to_string();
     for (auto ait = it->begin(); ait != it->end(); ++ait) {
       AttributeOccurrence* aoc_ptr = (*ait);
       const string this_att_name(aoc_ptr->get_attribute_name());
 
       // skip class and name attributes
-      if ((this_att_name == class_label) || (this_att_name == this->name_att))
+      if ((this_att_name == class_label) || (this_att_name == this->name_att) ||
+          (ignore_inst_nms.find(this_att_name) != ignore_inst_nms.end())) {
         continue;
+      }
 
-      std::cerr << "doing '" << this_att_name << "'" << std::endl;
-      m[std::make_pair(aoc_ptr->get_attribute_name(), name_att_val)] =\
-        ((*aoc_ptr) * 1.0);
+      m[std::make_pair(this_att_name, name_att_val)] = ((*aoc_ptr) * 1.0);
       inst_ids_set.insert(aoc_ptr->get_attribute_name());
     }
   }
@@ -135,16 +147,19 @@ Classifiers::KMedoids::learn(const Dataset &train_instances,
   std::cerr << "perform clustering " << std::endl;
   vector<string> inst_ids;
   std::copy(inst_ids_set.begin(), inst_ids_set.end(), std::back_inserter(inst_ids));
-  KMedoidsClusterer clstr(2, m, inst_ids);
+  KMedoidsClusterer clstr(this->k, m, inst_ids);
   clstr.train();
   this->medoid_names = clstr.get_medoids();
+  for (auto m : this->medoid_names)
+    cerr << m << endl;
+  cerr << " --- " << endl;
 
   // build new dataset characterized by distance to the medoids from
   // the clustering
   std::cerr << "transofrm dataset " << std::endl;
   Dataset nds;
   build_new_dataset(train_instances, nds, this->medoid_names,
-                    ignore_inst_ids, this->name_att);
+                    ignore_inst_ids, this->name_att, class_label);
 
   // build a NB classifier from the new instances
   std::cerr << "build nb classifier " << std::endl;
@@ -158,7 +173,8 @@ Classifiers::KMedoids::learn(const Dataset &train_instances,
  */
 double
 Classifiers::KMedoids::class_probability(const Instance &test_instance,
-                                         const string &class_label) const {
+                                         const string &class_label,
+                                         const set<string> &exclude_atts) const {
   Instance t_cp(test_instance); // !!!!!!!!!! make sure copy constructor is set up for instance!!!
   vector<string> att_names;
   for (auto it = t_cp.begin(); it != t_cp.end(); ++it) {

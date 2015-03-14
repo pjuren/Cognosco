@@ -40,14 +40,17 @@ namespace Classifiers {
 
     // public inspectors
     double class_probability(const Instance &test_instance,
-                             const std::string &class_label) const;
+                             const std::string &class_label,
+                             const std::set<std::string> &exclude_atts =\
+                               std::set<std::string>()) const;
     std::string to_string() const;
     std::string usage() const;
 
     // public mutators
     void learn(const Dataset &training_instances,
                const std::string &class_label,
-               const std::set<size_t> &ignore_instance_ids = std::set<size_t>());
+               const std::set<size_t> &ignore_instance_ids = std::set<size_t>(),
+               const std::set<std::string> &ig_atts = std::set<std::string>());
     void set_name_att(const std::string &s) { this->name_att = s; }
     void set_classifier_specific_options(Commandline &cmdline);
     void clear();
