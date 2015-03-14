@@ -61,9 +61,13 @@ public:
 
   // public inspectors
   double membership_probability(const Instance &test_instance,
-                                const std::string &class_label) const;
+                                const std::string &class_label,
+                                const std::set<std::string> &exclude_atts =\
+                                  std::set<std::string>()) const;
   double posterior_probability(const Instance &test_instance,
-                               const std::string &class_label) const;
+                               const std::string &class_label,
+                               const std::set<std::string> &exclude_atts =\
+                                 std::set<std::string>()) const;
   double get_prior_prob(const std::string &class_label) const;
   double get_conditional_prob(const AttributeOccurrence *value,
                               const std::string &class_label) const;
@@ -73,15 +77,19 @@ public:
   double get_mean(const std::string &class_name,
                   const std::string &att_name) const;
   double class_probability(const Instance &test_instance,
-                           const std::string &class_label) const {
-    return this->membership_probability(test_instance, class_label);
+                           const std::string &class_label,
+                           const std::set<std::string> &exclude_atts =\
+                             std::set<std::string>()) const {
+    return this->membership_probability(test_instance, class_label,
+                                        exclude_atts);
   }
   std::string usage() const;
 
   // public mutators
   void learn(const Dataset &training_instances,
              const std::string &class_label,
-             const std::set<size_t> &ignore_instance_ids = std::set<size_t>());
+             const std::set<size_t> &ignore_instance_ids = std::set<size_t>(),
+             const std::set<std::string> &ig_atts = std::set<std::string>());
   void set_classifier_specific_options(Commandline &cmdline);
   void clear();
 

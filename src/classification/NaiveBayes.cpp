@@ -23,11 +23,13 @@
 #include <unordered_map>
 #include <sstream>
 #include <cmath>
+#include <set>
 
 // local Cognosco includes
 #include "NaiveBayes.hpp"
 
 // bring these into the local namespace
+using std::set;
 using std::pair;
 using std::string;
 using std::unordered_map;
@@ -83,6 +85,7 @@ NaiveBayes::get_variance(const string &class_name, const string &att_name) const
  *        a Gaussian distribution -- TODO remove this assumption later some
  *        time. Classifier must have already been trained, otherwise the
  *        distribution parameters have not been learned.
+ * TODO should do this in log space... not numerically stable
  */
 double
 NaiveBayes::get_conditional_prob(const AttributeOccurrence *value,
@@ -110,11 +113,15 @@ NaiveBayes::get_conditional_prob(const AttributeOccurrence *value,
  */
 double
 NaiveBayes::posterior_probability(const Instance &test_instance,
-                                   const string &class_label) const {
+                                  const string &class_label,
+                                  const std::set<std::string> &ig_atts) const {
   double res = 1;
-  for (Instance::const_iterator it = test_instance.begin();
-       it != test_instance.end(); ++it) {
-    if ((*it)->get_attribute_name() == this->learned_class) continue;
+  for (auto it = test_instance.begin(); it != test_instance.end(); ++it) {
+    string att_name ((*it)->get_attribute_name());
+    if ((att_name == this->learned_class) ||
+        (ig_atts.find(att_name) != ig_atts.end())) {
+      continue;
+    }
     res *= this->get_conditional_prob(*it, class_label);
   }
   return res * this->get_prior_prob(class_label);
@@ -122,13 +129,14 @@ NaiveBayes::posterior_probability(const Instance &test_instance,
 
 double
 NaiveBayes::membership_probability(const Instance &test_instance,
-                                   const string &class_label) const {
+                                   const string &class_label,
+                                   const set<string> &ig_atts) const {
   double sum = 0;
   std::vector<string> class_labels;
   for (auto p : this->class_priors) class_labels.push_back(p.first);
   for (size_t i = 0; i < class_labels.size(); ++i)
-    sum += this->posterior_probability(test_instance, class_labels[i]);
-  return this->posterior_probability(test_instance, class_label) / sum;
+    sum += this->posterior_probability(test_instance, class_labels[i], ig_atts);
+  return this->posterior_probability(test_instance, class_label, ig_atts) / sum;
 }
 
 
@@ -166,7 +174,8 @@ NaiveBayes::usage() const {
 void
 NaiveBayes::learn(const Dataset &training_instances,
                   const string &class_label,
-                  const std::set<size_t> &ignore_inst_ids) {
+                  const set<size_t> &ignore_inst_ids,
+                  const set<string> &ig_atts) {
   // for computing class prior probabilities
   unordered_map<string, double> class_counts;
 
@@ -187,7 +196,10 @@ NaiveBayes::learn(const Dataset &training_instances,
 
     for (Instance::const_iterator it = inst->begin(); it != inst->end(); ++it) {
       const string& attribute_name = (*it)->get_attribute_name();
-      if (attribute_name == class_label) continue;
+      if ((attribute_name == class_label) ||
+          (ig_atts.find(attribute_name) != ig_atts.end())) {
+        continue;
+      }
       const double att_value = (**it) * 1.0;
       std::pair<string, string> att_class_pair =\
         std::make_pair(instance_class_label, attribute_name);

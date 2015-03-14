@@ -32,7 +32,9 @@ public:
 
   // public inspectors
   virtual double class_probability(const Instance &test_instance,
-                                   const std::string &class_label) const = 0;
+                                   const std::string &class_label,
+                                   const std::set<std::string> &exclude_atts =\
+                                     std::set<std::string>()) const = 0;
   virtual std::string to_string() const = 0;
   virtual std::string usage() const = 0;
   bool learned() { return this->learned_class.empty(); }
@@ -40,7 +42,9 @@ public:
   // public mutators
   virtual void learn(const Dataset &training_instances,
                      const std::string &class_label,
-                     const std::set<size_t> &ig_insts = std::set<size_t>()) = 0;
+                     const std::set<size_t> &ig_insts = std::set<size_t>(),
+                     const std::set<std::string> &ig_atts =\
+                       std::set<std::string>()) = 0;
   virtual void set_classifier_specific_options(Commandline &cmd) = 0;
   virtual void clear() = 0;
 protected:
