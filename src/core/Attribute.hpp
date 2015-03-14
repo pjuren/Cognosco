@@ -23,6 +23,7 @@
 // stl includes
 #include <string>
 #include <vector>
+#include <iostream>
 
 // local Cognosco includes
 #include "CognoscoError.hpp"
@@ -36,6 +37,7 @@ public:
   // constructors
   Attribute();
   Attribute(std::string name, AttributeType type);
+  ~Attribute() {}
 
   // inspectors
   const std::string& get_name() const;
@@ -71,7 +73,7 @@ public:
 protected:
   // constructors
   AttributeOccurrence(const AttributeOccurrence &ac) :
-    attr_desc(new Attribute(*(ac.attr_desc))) {};
+    attr_desc(ac.attr_desc) {};
 
 private:
   const Attribute *attr_desc;
@@ -94,6 +96,9 @@ public:
   // numeric operations
   double operator *(const double d) { return d * this->value; }
   double operator *(const double d) const { return d * this->value; }
+protected:
+  NumericAttributeOccurrence(const NumericAttributeOccurrence &o) :
+    AttributeOccurrence(o), value(o.value) {}
 private:
   double value;
 };
@@ -110,6 +115,9 @@ public:
   NominalAttributeOccurrence *clone() const {
     return new NominalAttributeOccurrence(*this);
   }
+protected:
+  NominalAttributeOccurrence(const NominalAttributeOccurrence &o) :
+    AttributeOccurrence(o), value(o.value) {}
 private:
   std::string value;
 };
