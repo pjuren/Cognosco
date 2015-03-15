@@ -20,6 +20,7 @@
 #ifndef CLASSIFIER_HPP_
 #define CLASSIFIER_HPP_
 
+#include "MisclassificationCostMatrix.hpp"
 #include "Instance.hpp"
 #include "Dataset.hpp"
 #include "CLI.hpp"
@@ -28,6 +29,10 @@ class Classifier {
 public:
   // constructors and destructors
   Classifier() : learned_class ("") {};
+  explicit Classifier(const MisclassificationCostMatrix &m) {
+    throw CognoscoError("Classifier does not support "
+                        "misclassification cost adjustment");
+  }
   virtual ~Classifier() {};
 
   // public inspectors
