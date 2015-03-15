@@ -45,6 +45,14 @@ public:
   typedef std::vector<Attribute*>::const_iterator const_attribute_iterator;
 
   // inspectors
+  bool has_attribute(const std::string &name) const {
+    // TODO fix nasty O(n)
+    for (size_t i = 0; i < this->att_descr_ptrs.size(); ++i) {
+      if (this->att_descr_ptrs[i]->get_name() == name)
+        return true;
+    }
+    return false;
+  }
   const Attribute* get_attribute_description_ptr(size_t k) const;
   std::string to_csv(const std::string &sep = ",") const;
   const_iterator begin() const { return this->instances.begin(); }
