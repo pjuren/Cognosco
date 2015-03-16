@@ -28,6 +28,7 @@
 // local Cognosco includes
 #include "Dataset.hpp"
 #include "CognoscoError.hpp"
+#include "StringUtils.hpp"
 
 // bring these into the local namespace
 using std::string;
@@ -173,6 +174,14 @@ DatasetSplit::DatasetSplit(const Dataset &d, const size_t k,
  */
 void
 DatasetSplit::update_label_counts(const Dataset &d) {
+  // set everything back to 0
+  for (auto c_iter = this->att_counts_per_fold.begin();
+       c_iter != this->att_counts_per_fold.end(); ++c_iter) {
+    for (size_t i = 0; i < c_iter->second.size(); ++i) {
+      c_iter->second[i] = 0;
+    }
+  }
+
   for (size_t k = 0; k < this->assignments.size(); ++k) {
     for (size_t j = 0; j < this->assignments[k].size(); ++j) {
       const size_t inst_id (this->assignments[k][j]);
@@ -250,18 +259,38 @@ DatasetSplit::random_swap(const Dataset &d) {
 DatasetSplit
 DatasetSplitter::split(const Dataset &d,
                        const std::string &class_label) const {
+  const bool DEBUG = false;
   DatasetSplit assignments(d, this->num_folds, class_label);
   AttFoldCounts ideal_counts =\
     this->compute_ideal_counts(d, class_label);
+  if (DEBUG) {
+    for (auto kvp : ideal_counts) {
+      std::cerr << kvp.first << ": " << join(kvp.second, ",");
+    }
+  }
   double current_score = assignments.distance(ideal_counts);
   for (size_t i = 0; i < this->MAX_NUM_SWAPS; ++i) {
     std::pair<FoldInstancePair, FoldInstancePair> swapped =\
       assignments.random_swap(d);
     double new_score = assignments.distance(ideal_counts);
+    if (DEBUG) {
+      std::cerr << "try swapping instance " << swapped.first.second
+                << " in fold " << swapped.first.first << " with instance "
+                << swapped.second.second << " in fold " << swapped.second.first
+                << " new score --> " << new_score << " is ";
+    }
     if (new_score < current_score) {
+      if (DEBUG) {
+        std::cerr << "better than old score (" << current_score << ") "
+                  << "so keep" << std::endl;
+      }
       current_score = new_score;
     } else {
       // swap back
+      if (DEBUG) {
+        std::cerr << "worse than old score (" << current_score << ") "
+                  << "so swap back" << std::endl;
+      }
       assignments.swap(swapped.second, swapped.first, d);
     }
   }
