@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <sstream>
 
 // local Cognosco includes
 #include "CognoscoError.hpp"
@@ -64,10 +65,16 @@ public:
 
   // numeric operations
   virtual double operator *(const double d) {
-    throw CognoscoError("multiplication by double not defined");
+    std::stringstream ss;
+    ss << "multiplication by double for attribute "
+       << this->get_attribute_name() << " undefined";
+    throw CognoscoError(ss.str());
   }
   virtual double operator *(const double d) const {
-    throw CognoscoError("multiplication by double not defined");
+    std::stringstream ss;
+    ss << "multiplication by double for attribute "
+       << this->get_attribute_name() << " undefined";
+    throw CognoscoError(ss.str());
   }
 
 protected:
