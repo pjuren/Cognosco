@@ -33,6 +33,7 @@ namespace Classifiers {
   class KMedoids : public Classifier {
   public:
     // constructors and destructors
+    using Classifier::Classifier;
     KMedoids() : Classifier(), nb_classifier(NaiveBayes()),
                  medoid_names(std::set<std::string>()),
                  name_att("") {}

@@ -58,6 +58,7 @@ public:
 class NaiveBayes : public Classifier {
 public:
   // constructors
+  using Classifier::Classifier;
 
   // public inspectors
   double membership_probability(const Instance &test_instance,
