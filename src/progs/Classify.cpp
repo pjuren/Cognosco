@@ -30,6 +30,7 @@
 #include "CognoscoError.hpp"
 #include "NaiveBayes.hpp"
 #include "KMedoidsClassifier.hpp"
+#include "DecisionStump.hpp"
 
 // bring these into the current namespace..
 using std::set;
@@ -47,6 +48,15 @@ static Classifier*
 build_classifier(const string &name) {
   if (name == "NaiveBayes") return new NaiveBayes();
   if (name == "KMedoids") return new Classifiers::KMedoids();
+  if (name == "DecisionStump") return new Classifiers::DecisionStump();
+  throw CognoscoError("Unknown classifier type: " + name);
+}
+
+static Classifier*
+build_classifier(const string &name, const MisclassificationCostMatrix &m) {
+  if (name == "NaiveBayes") return new NaiveBayes(m);
+  if (name == "KMedoids") return new Classifiers::KMedoids(m);
+  if (name == "DecisionStump") return new Classifiers::DecisionStump(m);
   throw CognoscoError("Unknown classifier type: " + name);
 }
 
@@ -96,11 +106,20 @@ output_classification(const Dataset &d, const Classifier &clsfr,
  *                             CROSS-VALIDATION                              *
  *****************************************************************************/
 
+/**
+ * \param ex_atts_with_id_val if not empty string, any attributes that have the
+ *                            same name as the value of this attribute for the
+ *                            instances held out in in the current fold will
+ *                            not be used for training. For example, this might
+ *                            be an ID attribute like 'instance_name'.
+ */
 static void
 k_fold_cross_validation(Classifier *clsfr, const Dataset &d,
                         const size_t k, const string &class_label,
                         const string &pos_class_val,
-                        const set<string> &exclude_atts) {
+                        const set<string> &exclude_atts,
+                        const string &ex_atts_with_id_val = "",
+                        const bool VERBOSE = false) {
   cerr << "creating splitter" << endl;
   DatasetSplitter x_validation_splitter(k);
   cerr << "splitting dataset" << endl;
@@ -120,21 +139,42 @@ k_fold_cross_validation(Classifier *clsfr, const Dataset &d,
 
     set<size_t> exclude_insts(instances_in_fold[fold_num].begin(),
                               instances_in_fold[fold_num].end());
-    clsfr->learn(d, class_label, exclude_insts, exclude_atts);
+    set<string> exclude_atts_expanded(exclude_atts.begin(), exclude_atts.end());
+    if (!ex_atts_with_id_val.empty()) {
+      for (auto e_i_it = exclude_insts.begin(); e_i_it != exclude_insts.end(); ++e_i_it) {
+        string att_val = d[*e_i_it][ex_atts_with_id_val]->to_string();
+        if (d.has_attribute(att_val)) {
+          cerr << "adding " << att_val << " to excluded attributes" << endl;
+          exclude_atts_expanded.insert(att_val);
+        }
+      }
+    }
+    clsfr->learn(d, class_label, exclude_insts, exclude_atts_expanded);
+    if (VERBOSE)
+      cerr << clsfr->to_string() << endl;
     for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
       if (exclude_insts.find(inst->get_instance_id()) != exclude_insts.end()) {
         output_classification(*inst, *clsfr, att_names,
-                              pos_class_val, exclude_atts);
+                              pos_class_val, exclude_atts_expanded);
       }
     }
   }
 }
 
+/**
+ * \param ex_atts_with_id_val if not empty string, any attributes that have the
+ *                            same name as the value of this attribute for the
+ *                            instances held out in in the current fold will
+ *                            not be used for training. For example, this might
+ *                            be an ID attribute like 'instance_name'.
+ */
 static void
 leave_one_out_cross_validation(Classifier *clsfr, const Dataset &d,
                                const size_t k, const string &class_label,
                                const string &pos_class_val,
-                               const set<string> &exclude_atts) {
+                               const set<string> &exclude_atts,
+                               const string &ex_atts_with_id_val = "",
+                               const bool VERBOSE = false) {
   cerr << "extracting attributes" << endl;
   vector<string> att_names;
   for (auto it = d.begin_attributes(); it != d.end_attributes(); ++it) {
@@ -143,12 +183,21 @@ leave_one_out_cross_validation(Classifier *clsfr, const Dataset &d,
   }
 
   for (Dataset::const_iterator inst = d.begin(); inst != d.end(); ++inst) {
+    set<string> exclude_atts_expanded(exclude_atts.begin(), exclude_atts.end());
+    if (!ex_atts_with_id_val.empty()) {
+      string att_val = (*inst)[ex_atts_with_id_val]->to_string();
+      if (d.has_attribute(att_val)) {
+        cerr << "adding " << att_val << " to excluded attributes" << endl;
+        exclude_atts_expanded.insert(att_val);
+      }
+    }
+
     set<size_t> exclude_insts;
     exclude_insts.insert(inst->get_instance_id());
     clsfr->clear();
-    clsfr->learn(d, class_label, exclude_insts, exclude_atts);
+    clsfr->learn(d, class_label, exclude_insts, exclude_atts_expanded);
     output_classification(*inst, *clsfr, att_names,
-                          pos_class_val, exclude_atts);
+                          pos_class_val, exclude_atts_expanded);
   }
 }
 
@@ -174,12 +223,21 @@ get_cli(const string &prog_name) {
                         "as class");
   cli.add_string_option("positive-value", 'p', "value for the class attribute "
                         "that should be considered the positive class");
+  cli.add_string_option("misclassification-cost-matrix", 'm', "NxN matrix "
+                        "specifying relative cost of clasifying class A as "
+                        "class B. Example: "
+                        "\"good:poor:4 poor:good:1 poor:poor:0 good:good:1\"",
+                        "");
   cli.add_boolean_option("whitespace-sep", 'w', "treat input files as having "
                          "whitespace-separated fields, rather than comma "
                          "separated", false);
   cli.add_stringlist_option("exclude-attributes", 'e', "do not use these "
                             "attribtues for model training; if more than one, "
                             "provide as a quoted comma-separated list", "");
+  cli.add_string_option("exclude-att-val", 'x', "do not use attributes "
+                        "for training if their name is the same as the "
+                        "value of this attribute in a held-out instance",
+                        "");
   return cli;
 }
 
@@ -195,6 +253,8 @@ main(int argc, const char* argv[]) {
     string training_dataset_fn;
     string testing_dataset_fn = "";
     set<string> exclude_atts;
+    string exclude_att_val = "";
+    string misclass_matr_str;
 
     // process general options/arguments from command line.
     CommandlineInterface cli (get_cli(argv[0]));
@@ -208,12 +268,20 @@ main(int argc, const char* argv[]) {
       cli.consume('p', cmdline, positive_class_value);
       cli.consume('w', cmdline, whitespace_sep);
       cli.consume('e', cmdline, exclude_atts);
+      cli.consume('x', cmdline, exclude_att_val);
+      cli.consume('m', cmdline, misclass_matr_str);
       cli.consume(cmdline, 0, training_dataset_fn);
       if (cmdline.num_arguments() > 1) {
         cli.consume(cmdline, 1, testing_dataset_fn);
       }
 
-      clsfr = build_classifier(classifier);
+      if (misclass_matr_str.empty()) {
+        clsfr = build_classifier(classifier);
+      } else {
+        MisclassificationCostMatrix m (misclass_matr_str);
+        clsfr = build_classifier(classifier, m);
+      }
+
       cerr << "calling set specific.." << endl;
       clsfr->set_classifier_specific_options(cmdline);
 
@@ -254,10 +322,12 @@ main(int argc, const char* argv[]) {
              cross_validation_method == "hold-one-out");
       if (cross_validation_method == "stratified_ten_fold")
         k_fold_cross_validation(clsfr, d, 10, class_attribute_name,
-                                positive_class_value, exclude_atts);
+                                positive_class_value, exclude_atts,
+                                exclude_att_val, VERBOSE);
       else
         leave_one_out_cross_validation(clsfr, d, 10, class_attribute_name,
-                                       positive_class_value, exclude_atts);
+                                       positive_class_value, exclude_atts,
+                                       exclude_att_val, VERBOSE);
     } else {
       Dataset train, test;
       csv_loader.load(training_dataset_fn, train, VERBOSE);
