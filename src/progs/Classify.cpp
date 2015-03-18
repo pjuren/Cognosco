@@ -35,6 +35,7 @@
 #include "KMedoidsClassifier.hpp"
 #include "DecisionStump.hpp"
 #include "Random.hpp"
+#include "ZeroR.hpp"
 
 // bring these into the current namespace..
 using std::set;
@@ -54,6 +55,7 @@ build_classifier(const string &name) {
   if (name == "KMedoids") return new Classifiers::KMedoids();
   if (name == "DecisionStump") return new Classifiers::DecisionStump();
   if (name == "Random") return new Classifiers::Random();
+  if (name == "ZeroR") return new Classifiers::ZeroR();
   throw CognoscoError("Unknown classifier type: " + name);
 }
 
@@ -63,6 +65,7 @@ build_classifier(const string &name, const MisclassificationCostMatrix &m) {
   if (name == "KMedoids") return new Classifiers::KMedoids(m);
   if (name == "DecisionStump") return new Classifiers::DecisionStump(m);
   if (name == "Random") return new Classifiers::Random(m);
+  if (name == "ZeroR") return new Classifiers::ZeroR(m);
   throw CognoscoError("Unknown classifier type: " + name);
 }
 
