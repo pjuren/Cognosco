@@ -23,14 +23,18 @@
 #include <iostream>
 #include <cassert>
 
-// local Cognosco includes
+// local Cognosco includes -- core
 #include "Dataset.hpp"
-#include "CLI.hpp"
-#include "CSVLoader.hpp"
 #include "CognoscoError.hpp"
+// local Cognosco includes -- ui
+#include "CLI.hpp"
+// local Cognosco includes -- io
+#include "CSVLoader.hpp"
+// local Cognosco includes -- classifiers
 #include "NaiveBayes.hpp"
 #include "KMedoidsClassifier.hpp"
 #include "DecisionStump.hpp"
+#include "Random.hpp"
 
 // bring these into the current namespace..
 using std::set;
@@ -49,6 +53,7 @@ build_classifier(const string &name) {
   if (name == "NaiveBayes") return new NaiveBayes();
   if (name == "KMedoids") return new Classifiers::KMedoids();
   if (name == "DecisionStump") return new Classifiers::DecisionStump();
+  if (name == "Random") return new Classifiers::Random();
   throw CognoscoError("Unknown classifier type: " + name);
 }
 
@@ -57,6 +62,7 @@ build_classifier(const string &name, const MisclassificationCostMatrix &m) {
   if (name == "NaiveBayes") return new NaiveBayes(m);
   if (name == "KMedoids") return new Classifiers::KMedoids(m);
   if (name == "DecisionStump") return new Classifiers::DecisionStump(m);
+  if (name == "Random") return new Classifiers::Random(m);
   throw CognoscoError("Unknown classifier type: " + name);
 }
 

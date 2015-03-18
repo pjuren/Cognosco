@@ -79,8 +79,9 @@ Classify: $(addprefix $(CORE_MODULE_DIR)/, Dataset.o Attribute.o Instance.o \
           $(addprefix $(IO_MODULE_DIR)/, CSVLoader.o) \
           $(addprefix $(UTIL_MODULE_DIR)/, StringUtils.o) \
           $(addprefix $(CLASSIFICATION_MODULE_DIR)/, NaiveBayes.o \
-                                                     KMedoidsClassifier.o\
-                                                     DecisionStump.o) \
+                                                     KMedoidsClassifier.o \
+                                                     DecisionStump.o \
+                                                     Random.o) \
           $(addprefix $(UI_MODULE_DIR)/, CLI.o) \
           $(addprefix $(CLUSTERING_MODULE_DIR)/, KMedoids.o)
 
