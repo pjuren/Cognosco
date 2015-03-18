@@ -70,6 +70,10 @@ Classifiers::Random::learn(const Dataset &train_insts,
                            const set<string> &ig_atts) {
   set<string> class_labels;
   for (auto inst = train_insts.begin(); inst != train_insts.end(); ++inst) {
+    if (ignore_inst_ids.find(inst->get_instance_id()) != ignore_inst_ids.end()) {
+      continue;
+    }
+
     const string &instance_class_label =\
       inst->get_att_occurrence(class_label)->to_string();
     class_labels.insert(instance_class_label);
@@ -85,5 +89,5 @@ Classifiers::Random::set_classifier_specific_options(Commandline &cmdline) {
 
 void
 Classifiers::Random::clear() {
-  // nothing to clear...
+  this->learned_class = "";
 }
